@@ -38,6 +38,14 @@ else
         </div>
     </div>
 
+    <!-- Tab-navigering -->
+    <nav class="circle-tabs">
+        <a class="circle-tab circle-tab-active" href="/cirklar/@Id">Medlemmar</a>
+        <a class="circle-tab" href="/cirklar/@Id/diskussioner">Diskussioner</a>
+        <a class="circle-tab" href="/cirklar/@Id/omrostningar">Omröstningar</a>
+        <a class="circle-tab" href="/cirklar/@Id/uppgifter">Uppgifter</a>
+    </nav>
+
     <section>
         <h2 class="section-label">Medlemmar (@(_members?.Count ?? 0))</h2>
 
@@ -83,7 +91,6 @@ else
 
         try
         {
-            // Access check: only surface a circle the person can actually reach.
             var accessible = await Circles.GetAccessibleCirclesAsync(pid);
             _circle = accessible.FirstOrDefault(c => c.CircleId == Id);
 

@@ -1,0 +1,70 @@
+@page "/diskussioner/{Id:guid}"
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject ContentService Content
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>@(_discussion?.Title ?? "Diskussion") · Circles</PageTitle>
+
+<header class="page-header">
+    @if (_discussion is not null)
+    {
+        <a class="back-link" href="/cirklar/@_discussion.CircleId/diskussioner">← Tillbaka</a>
+    }
+    else
+    {
+        <a class="back-link" href="/hem">← Tillbaka</a>
+    }
+</header>
+
+@if (_error is not null)
+{
+    <p class="alert alert-error" role="alert">@_error</p>
+}
+else if (_loading)
+{
+    <div class="center-pad"><div class="spinner"></div></div>
+}
+else if (_discussion is null)
+{
+    <div class="empty-state">
+        <p class="empty-title">Diskussionen hittades inte</p>
+    </div>
+}
+else
+{
+    <div class="thread-head">
+        <h1>@_discussion.Title</h1>
+        <p class="thread-head-meta">Startad av @_discussion.OriginalPosterName · @_discussion.CreatedAt.ToString("d MMMM yyyy")</p>
+    </div>
+
+    <section class="posts-section">
+        @foreach (var p in _discussion.Posts)
+        {
+            <div class="post-bubble @(p.PersonId == _personId ? "post-mine" : "")">
+                <div class="post-header">
+                    <span class="avatar avatar-sm">@Labels.Initials(p.AuthorName)</span>
+                    <span class="post-author">@p.AuthorName</span>
+                    <span class="post-date">@p.CreatedAt.ToString("d MMM HH:mm")</span>
+                </div>
+                <p class="post-body">@p.Content</p>
+            </div>
+        }
+    </section>
+
+    <!-- Svarsformulär -->
+    <section class="reply-section">
+        <div class="field">
+            <label>Ditt svar</label>
+            <textarea @bind="_replyBody" rows="3" placeholder="Skriv ett svar…" maxlength="5000"></textarea>
+        </div>
+        @if (_replyError is not null)
+        {
+            <p class="field-error">@_replyError</p>
+        }
+        <button class="btn btn-primary btn-sm" @onclick="AddReply" disabled="@_saving">
+            @(_saving ? "Sparar…" : "Skicka svar")
+        </button>
+    </section>
+}

@@ -1,0 +1,80 @@
+@page "/omrostningar/{Id:guid}"
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject ContentService Content
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>@(_poll?.Title ?? "Omröstning") · Circles</PageTitle>
+
+<header class="page-header">
+    @if (_poll is not null)
+    {
+        <a class="back-link" href="/cirklar/@_poll.CircleId/omrostningar">← Tillbaka</a>
+    }
+    else
+    {
+        <a class="back-link" href="/hem">← Tillbaka</a>
+    }
+</header>
+
+@if (_error is not null)
+{
+    <p class="alert alert-error" role="alert">@_error</p>
+}
+else if (_loading)
+{
+    <div class="center-pad"><div class="spinner"></div></div>
+}
+else if (_poll is null)
+{
+    <div class="empty-state">
+        <p class="empty-title">Omröstningen hittades inte</p>
+    </div>
+}
+else
+{
+    <div class="thread-head">
+        <h1>@_poll.Title</h1>
+        <p class="thread-head-meta">@_poll.Options.Sum(o => o.VoteCount) röster totalt · @_poll.CreatedAt.ToString("d MMMM yyyy")</p>
+        @if (!_poll.IsOpen)
+        {
+            <span class="chip chip-muted">Stängd</span>
+        }
+    </div>
+
+    <section class="poll-section">
+        @if (_voteSuccess is not null)
+        {
+            <p class="alert alert-ok">@_voteSuccess</p>
+        }
+        @if (_voteError is not null)
+        {
+            <p class="alert alert-error">@_voteError</p>
+        }
+
+        @{
+            var total = _poll.Options.Sum(o => o.VoteCount);
+        }
+        @foreach (var opt in _poll.Options.OrderBy(o => o.Order))
+        {
+            var pct = total > 0 ? (int)Math.Round(100.0 * opt.VoteCount / total) : 0;
+            var isMyVote = opt.Id == _poll.MyVotedOptionId;
+
+            <div class="poll-option @(isMyVote ? "poll-option-voted" : "")"
+                 @onclick="() => CastVote(opt.Id)">
+                <div class="poll-option-top">
+                    <span class="poll-option-text">
+                        @if (isMyVote) { <span class="poll-checkmark">✓</span> }
+                        @opt.Text
+                    </span>
+                    <span class="poll-option-count">@opt.VoteCount</span>
+                </div>
+                <div class="poll-bar-track">
+                    <div class="poll-bar-fill" style="width: @(pct)%"></div>
+                </div>
+                <span class="poll-pct">@pct %</span>
+            </div>
+        }
+    </section>
+}

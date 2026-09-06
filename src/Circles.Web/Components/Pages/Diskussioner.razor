@@ -1,0 +1,96 @@
+@page "/cirklar/{Id:guid}/diskussioner"
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject CirclesQueryService Circles
+@inject ContentService Content
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+
+<PageTitle>Diskussioner · Circles</PageTitle>
+
+<header class="page-header">
+    <a class="back-link" href="/cirklar/@Id">← Tillbaka</a>
+</header>
+
+@if (_circle is not null)
+{
+    <div class="circle-detail-head">
+        <h1>@_circle.Name</h1>
+    </div>
+
+    <nav class="circle-tabs">
+        <a class="circle-tab" href="/cirklar/@Id">Medlemmar</a>
+        <a class="circle-tab circle-tab-active" href="/cirklar/@Id/diskussioner">Diskussioner</a>
+        <a class="circle-tab" href="/cirklar/@Id/omrostningar">Omröstningar</a>
+        <a class="circle-tab" href="/cirklar/@Id/uppgifter">Uppgifter</a>
+    </nav>
+}
+
+@if (_error is not null)
+{
+    <p class="alert alert-error" role="alert">@_error</p>
+}
+else if (_loading)
+{
+    <div class="center-pad"><div class="spinner"></div></div>
+}
+else
+{
+    <!-- Ny diskussion -->
+    <section class="content-section">
+        <button class="btn btn-outline btn-sm" @onclick="ToggleForm">
+            @(_showForm ? "Avbryt" : "+ Ny diskussion")
+        </button>
+
+        @if (_showForm)
+        {
+            <div class="compose-card">
+                <div class="field">
+                    <label>Rubrik</label>
+                    <input type="text" @bind="_newTitle" placeholder="Ämne…" maxlength="200" />
+                </div>
+                <div class="field">
+                    <label>Meddelande</label>
+                    <textarea @bind="_newBody" rows="4" placeholder="Skriv ditt meddelande…" maxlength="5000"></textarea>
+                </div>
+                @if (_formError is not null)
+                {
+                    <p class="field-error">@_formError</p>
+                }
+                <button class="btn btn-primary btn-sm" @onclick="CreateDiscussion" disabled="@_saving">
+                    @(_saving ? "Sparar…" : "Publicera")
+                </button>
+            </div>
+        }
+    </section>
+
+    <!-- Lista -->
+    <section class="content-section">
+        <h2 class="section-label">Diskussioner (@(_discussions?.Count ?? 0))</h2>
+
+        @if (_discussions is null || _discussions.Count == 0)
+        {
+            <div class="empty-state">
+                <p class="empty-title">Inga diskussioner ännu</p>
+                <p class="empty-help">Starta den första diskussionen ovan.</p>
+            </div>
+        }
+        else
+        {
+            <ul class="thread-list">
+                @foreach (var d in _discussions)
+                {
+                    <li class="thread-row" @onclick="() => GoToDiscussion(d.Id)">
+                        <div class="thread-meta">
+                            <span class="thread-author">@d.OriginalPosterName</span>
+                            <span class="thread-date">@d.CreatedAt.ToString("d MMM")</span>
+                        </div>
+                        <p class="thread-title">@d.Title</p>
+                        <span class="thread-count">@d.PostCount svar</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}

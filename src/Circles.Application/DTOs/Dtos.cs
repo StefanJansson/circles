@@ -44,3 +44,69 @@ public record PermissionsDto(
     Guid CircleId,
     bool CanAccess,
     List<PermissionType> Permissions);
+
+// ─── Discussion / Post ───────────────────────────────────────────────────────
+
+public record DiscussionSummaryDto(
+    Guid Id,
+    Guid CircleId,
+    string Title,
+    string OriginalPosterName,
+    int PostCount,
+    DateTime CreatedAt,
+    DateTime? LatestPostAt);
+
+public record DiscussionDetailDto(
+    Guid Id,
+    Guid CircleId,
+    string Title,
+    string OriginalPosterName,
+    DateTime CreatedAt,
+    List<PostDto> Posts);
+
+public record PostDto(
+    Guid Id,
+    Guid PersonId,
+    string AuthorName,
+    string Content,
+    DateTime CreatedAt);
+
+// ─── Poll ────────────────────────────────────────────────────────────────────
+
+public record PollSummaryDto(
+    Guid Id,
+    Guid CircleId,
+    string Title,
+    DateTime CreatedAt,
+    DateTime? ClosedAt,
+    int TotalVotes,
+    bool IsOpen);
+
+public record PollDetailDto(
+    Guid Id,
+    Guid CircleId,
+    string Title,
+    DateTime CreatedAt,
+    DateTime? ClosedAt,
+    bool IsOpen,
+    List<PollOptionDto> Options,
+    Guid? MyVotedOptionId);
+
+public record PollOptionDto(
+    Guid Id,
+    string Text,
+    int Order,
+    int VoteCount);
+
+// ─── Task ────────────────────────────────────────────────────────────────────
+
+public record CirclesTaskDto(
+    Guid Id,
+    Guid CircleId,
+    string Title,
+    string Description,
+    string CreatedByName,
+    DateTime CreatedAt,
+    DateTime? DueDate,
+    bool IsCompleted,
+    DateTime? CompletedAt);

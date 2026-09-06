@@ -31,4 +31,7 @@ public class Circle
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Membership> Memberships { get; set; } = new List<Membership>();
+    public ICollection<Discussion> Discussions { get; set; } = new List<Discussion>();
+    public ICollection<Poll> Polls { get; set; } = new List<Poll>();
+    public ICollection<CirclesTask> Tasks { get; set; } = new List<CirclesTask>();
 }

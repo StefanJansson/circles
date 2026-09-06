@@ -1,0 +1,124 @@
+@page "/cirklar/{Id:guid}/uppgifter"
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject CirclesQueryService Circles
+@inject ContentService Content
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Uppgifter · Circles</PageTitle>
+
+<header class="page-header">
+    <a class="back-link" href="/cirklar/@Id">← Tillbaka</a>
+</header>
+
+@if (_circle is not null)
+{
+    <div class="circle-detail-head">
+        <h1>@_circle.Name</h1>
+    </div>
+
+    <nav class="circle-tabs">
+        <a class="circle-tab" href="/cirklar/@Id">Medlemmar</a>
+        <a class="circle-tab" href="/cirklar/@Id/diskussioner">Diskussioner</a>
+        <a class="circle-tab" href="/cirklar/@Id/omrostningar">Omröstningar</a>
+        <a class="circle-tab circle-tab-active" href="/cirklar/@Id/uppgifter">Uppgifter</a>
+    </nav>
+}
+
+@if (_error is not null)
+{
+    <p class="alert alert-error" role="alert">@_error</p>
+}
+else if (_loading)
+{
+    <div class="center-pad"><div class="spinner"></div></div>
+}
+else
+{
+    <!-- Ny uppgift -->
+    <section class="content-section">
+        <button class="btn btn-outline btn-sm" @onclick="ToggleForm">
+            @(_showForm ? "Avbryt" : "+ Ny uppgift")
+        </button>
+
+        @if (_showForm)
+        {
+            <div class="compose-card">
+                <div class="field">
+                    <label>Titel</label>
+                    <input type="text" @bind="_newTitle" placeholder="Vad ska göras?" maxlength="200" />
+                </div>
+                <div class="field">
+                    <label>Beskrivning (valfritt)</label>
+                    <textarea @bind="_newDescription" rows="3" placeholder="Mer detaljer…" maxlength="2000"></textarea>
+                </div>
+                <div class="field">
+                    <label>Förfallodatum (valfritt)</label>
+                    <input type="date" @bind="_newDueDate" />
+                </div>
+                @if (_formError is not null)
+                {
+                    <p class="field-error">@_formError</p>
+                }
+                <button class="btn btn-primary btn-sm" @onclick="CreateTask" disabled="@_saving">
+                    @(_saving ? "Sparar…" : "Lägg till uppgift")
+                </button>
+            </div>
+        }
+    </section>
+
+    <!-- Lista -->
+    <section class="content-section">
+        @{
+            var pending   = _tasks?.Where(t => !t.IsCompleted).ToList() ?? new();
+            var completed = _tasks?.Where(t =>  t.IsCompleted).ToList() ?? new();
+        }
+
+        <h2 class="section-label">Öppna (@pending.Count)</h2>
+
+        @if (pending.Count == 0)
+        {
+            <div class="empty-state">
+                <p class="empty-title">Inga öppna uppgifter</p>
+                <p class="empty-help">Lägg till en uppgift ovan.</p>
+            </div>
+        }
+        else
+        {
+            <ul class="task-list">
+                @foreach (var t in pending)
+                {
+                    <li class="task-row" @onclick="() => ToggleTask(t.Id)">
+                        <span class="task-checkbox"></span>
+                        <div class="task-body">
+                            <span class="task-title">@t.Title</span>
+                            @if (t.DueDate.HasValue)
+                            {
+                                <span class="task-due">Förfaller @t.DueDate.Value.ToString("d MMM")</span>
+                            }
+                        </div>
+                        <span class="task-creator">@t.CreatedByName</span>
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (completed.Count > 0)
+        {
+            <h2 class="section-label" style="margin-top:24px">Klara (@completed.Count)</h2>
+            <ul class="task-list task-list-done">
+                @foreach (var t in completed)
+                {
+                    <li class="task-row task-done" @onclick="() => ToggleTask(t.Id)">
+                        <span class="task-checkbox task-checked">✓</span>
+                        <div class="task-body">
+                            <span class="task-title">@t.Title</span>
+                        </div>
+                        <span class="task-creator">@t.CreatedByName</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}

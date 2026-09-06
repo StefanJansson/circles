@@ -28,6 +28,7 @@ public static class DataSeeder
     {
         await SeedRolePermissionsAsync(db);
         await SeedUppsalaIkAsync(db);
+        await SeedContentAsync(db);
     }
 
     private static async Task SeedRolePermissionsAsync(CirclesDbContext db)
@@ -206,4 +207,85 @@ public static class DataSeeder
         ValidFrom = Now.AddYears(-1),
         ValidUntil = null
     };
+
+    /// <summary>
+    /// Seeds one demo Discussion, one Poll, and one Task so the UI has content
+    /// to display immediately after a fresh install. Skipped if already present.
+    /// </summary>
+    private static async Task SeedContentAsync(CirclesDbContext db)
+    {
+        if (await db.Discussions.AnyAsync()) return;
+
+        var p2016Id    = Id("circle:p2016");
+        var officialId = Id("circle:funktionarer");
+        var erikId     = Id("person:erik");
+        var johanId    = Id("person:johan");
+        var mariaId    = Id("person:maria");
+
+        // ── Demo Discussion in P2016 ────────────────────────────────────────
+        var discussion = new Discussion
+        {
+            Id          = Id("discussion:match-tider"),
+            CircleId    = p2016Id,
+            OriginalPosterPersonId = erikId,
+            Title       = "Matchider för kommande säsong",
+            CreatedAt   = Now.AddDays(10)
+        };
+        var post1 = new Post
+        {
+            Id           = Id("post:match-tider-1"),
+            DiscussionId = discussion.Id,
+            PersonId     = erikId,
+            Content      = "Hej alla! Har ni möjlighet att spela på lördagar framöver? Jag behöver boka tider.",
+            CreatedAt    = Now.AddDays(10)
+        };
+        var post2 = new Post
+        {
+            Id           = Id("post:match-tider-2"),
+            DiscussionId = discussion.Id,
+            PersonId     = mariaId,
+            Content      = "Lördagar fungerar bra för oss. Tack för att du kollar!",
+            CreatedAt    = Now.AddDays(10).AddHours(1)
+        };
+        db.Discussions.Add(discussion);
+        db.Posts.AddRange(post1, post2);
+
+        // ── Demo Poll in Funktionärer ───────────────────────────────────────
+        var poll = new Poll
+        {
+            Id        = Id("poll:traning-dag"),
+            CircleId  = officialId,
+            Title     = "Vilken dag passar träning bäst?",
+            CreatedAt = Now.AddDays(5)
+        };
+        var optTue = new PollOption { Id = Id("pollopt:tisdag"),  PollId = poll.Id, Text = "Tisdag",  Order = 0 };
+        var optThu = new PollOption { Id = Id("pollopt:torsdag"), PollId = poll.Id, Text = "Torsdag", Order = 1 };
+        var optSat = new PollOption { Id = Id("pollopt:lordag"),  PollId = poll.Id, Text = "Lördag",  Order = 2 };
+        poll.Options.Add(optTue);
+        poll.Options.Add(optThu);
+        poll.Options.Add(optSat);
+
+        // Johan röstar på Tisdag
+        var vote1 = new Vote { Id = Id("vote:johan-tisdag"), PollOptionId = optTue.Id, PersonId = johanId, CreatedAt = Now.AddDays(6) };
+        // Maria röstar på Torsdag
+        var vote2 = new Vote { Id = Id("vote:maria-torsdag"), PollOptionId = optThu.Id, PersonId = mariaId, CreatedAt = Now.AddDays(6) };
+
+        db.Polls.Add(poll);
+        db.Votes.AddRange(vote1, vote2);
+
+        // ── Demo Task in P2016 ──────────────────────────────────────────────
+        var circlesTask = new CirclesTask
+        {
+            Id                = Id("task:boka-plan"),
+            CircleId          = p2016Id,
+            CreatedByPersonId = erikId,
+            Title             = "Boka plan inför säsongsstart",
+            Description       = "Kontakta idrottshallen och boka tider för träning v.15–v.20.",
+            DueDate           = Now.AddDays(30),
+            CreatedAt         = Now.AddDays(2)
+        };
+        db.Tasks.Add(circlesTask);
+
+        await db.SaveChangesAsync();
+    }
 }

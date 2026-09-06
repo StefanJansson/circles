@@ -3,16 +3,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Circles.Infrastructure.Persistence;
 
-/// <summary>
-/// The EF Core context for the Circles modular monolith. All bounded concepts
-/// (people, accounts, memberships, relationships, organizations, circles and the
-/// role/permission model) live in one database but are kept as distinct sets.
-/// </summary>
 public class CirclesDbContext : DbContext
 {
-    public CirclesDbContext(DbContextOptions<CirclesDbContext> options) : base(options)
-    {
-    }
+    public CirclesDbContext(DbContextOptions<CirclesDbContext> options) : base(options) { }
 
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
@@ -22,6 +15,12 @@ public class CirclesDbContext : DbContext
     public DbSet<Membership> Memberships => Set<Membership>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
+    public DbSet<Discussion> Discussions => Set<Discussion>();
+    public DbSet<Post> Posts => Set<Post>();
+    public DbSet<Poll> Polls => Set<Poll>();
+    public DbSet<PollOption> PollOptions => Set<PollOption>();
+    public DbSet<Vote> Votes => Set<Vote>();
+    public DbSet<CirclesTask> Tasks => Set<CirclesTask>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

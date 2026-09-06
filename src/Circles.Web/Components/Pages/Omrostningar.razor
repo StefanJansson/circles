@@ -1,0 +1,96 @@
+@page "/cirklar/{Id:guid}/omrostningar"
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject CirclesQueryService Circles
+@inject ContentService Content
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+
+<PageTitle>Omröstningar · Circles</PageTitle>
+
+<header class="page-header">
+    <a class="back-link" href="/cirklar/@Id">← Tillbaka</a>
+</header>
+
+@if (_circle is not null)
+{
+    <div class="circle-detail-head">
+        <h1>@_circle.Name</h1>
+    </div>
+
+    <nav class="circle-tabs">
+        <a class="circle-tab" href="/cirklar/@Id">Medlemmar</a>
+        <a class="circle-tab" href="/cirklar/@Id/diskussioner">Diskussioner</a>
+        <a class="circle-tab circle-tab-active" href="/cirklar/@Id/omrostningar">Omröstningar</a>
+        <a class="circle-tab" href="/cirklar/@Id/uppgifter">Uppgifter</a>
+    </nav>
+}
+
+@if (_error is not null)
+{
+    <p class="alert alert-error" role="alert">@_error</p>
+}
+else if (_loading)
+{
+    <div class="center-pad"><div class="spinner"></div></div>
+}
+else
+{
+    <!-- Ny omröstning -->
+    <section class="content-section">
+        <button class="btn btn-outline btn-sm" @onclick="ToggleForm">
+            @(_showForm ? "Avbryt" : "+ Ny omröstning")
+        </button>
+
+        @if (_showForm)
+        {
+            <div class="compose-card">
+                <div class="field">
+                    <label>Fråga</label>
+                    <input type="text" @bind="_newQuestion" placeholder="Vilken fråga vill du ställa?" maxlength="300" />
+                </div>
+                <div class="field">
+                    <label>Alternativ (ett per rad, minst 2)</label>
+                    <textarea @bind="_newOptionsRaw" rows="4" placeholder="Alternativ 1&#10;Alternativ 2&#10;Alternativ 3"></textarea>
+                </div>
+                @if (_formError is not null)
+                {
+                    <p class="field-error">@_formError</p>
+                }
+                <button class="btn btn-primary btn-sm" @onclick="CreatePoll" disabled="@_saving">
+                    @(_saving ? "Sparar…" : "Skapa omröstning")
+                </button>
+            </div>
+        }
+    </section>
+
+    <!-- Lista -->
+    <section class="content-section">
+        <h2 class="section-label">Omröstningar (@(_polls?.Count ?? 0))</h2>
+
+        @if (_polls is null || _polls.Count == 0)
+        {
+            <div class="empty-state">
+                <p class="empty-title">Inga omröstningar ännu</p>
+                <p class="empty-help">Skapa den första omröstningen ovan.</p>
+            </div>
+        }
+        else
+        {
+            <ul class="thread-list">
+                @foreach (var poll in _polls)
+                {
+                    <li class="thread-row" @onclick="() => GoToPoll(poll.Id)">
+                        <div class="thread-meta">
+                            <span class="thread-date">@poll.CreatedAt.ToString("d MMM")</span>
+                            @if (!poll.IsOpen) { <span class="chip chip-muted">Stängd</span> }
+                        </div>
+                        <p class="thread-title">@poll.Title</p>
+                        <span class="thread-count">@poll.TotalVotes röster</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}

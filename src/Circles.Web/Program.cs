@@ -56,6 +56,7 @@ builder.Services.AddDbContext<CirclesDbContext>(options =>
 
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddScoped<CirclesQueryService>();
+builder.Services.AddScoped<ContentService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<AuthService>();
 

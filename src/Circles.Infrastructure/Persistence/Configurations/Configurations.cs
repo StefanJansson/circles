@@ -144,3 +144,127 @@ public class MagicLinkTokenConfiguration : IEntityTypeConfiguration<MagicLinkTok
         b.HasIndex(t => t.UserAccountId);
     }
 }
+
+public class DiscussionConfiguration : IEntityTypeConfiguration<Discussion>
+{
+    public void Configure(EntityTypeBuilder<Discussion> b)
+    {
+        b.ToTable("discussions");
+        b.HasKey(d => d.Id);
+        b.Property(d => d.Title).HasMaxLength(500).IsRequired();
+        
+        b.HasOne(d => d.Circle)
+            .WithMany(c => c.Discussions)
+            .HasForeignKey(d => d.CircleId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        b.HasOne(d => d.OriginalPoster)
+            .WithMany()
+            .HasForeignKey(d => d.OriginalPosterPersonId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        b.HasIndex(d => d.CircleId);
+    }
+}
+
+public class PostConfiguration : IEntityTypeConfiguration<Post>
+{
+    public void Configure(EntityTypeBuilder<Post> b)
+    {
+        b.ToTable("posts");
+        b.HasKey(p => p.Id);
+        b.Property(p => p.Content).IsRequired();
+        
+        b.HasOne(p => p.Discussion)
+            .WithMany(d => d.Posts)
+            .HasForeignKey(p => p.DiscussionId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        b.HasOne(p => p.Person)
+            .WithMany()
+            .HasForeignKey(p => p.PersonId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        b.HasIndex(p => new { p.DiscussionId, p.CreatedAt });
+    }
+}
+
+public class PollConfiguration : IEntityTypeConfiguration<Poll>
+{
+    public void Configure(EntityTypeBuilder<Poll> b)
+    {
+        b.ToTable("polls");
+        b.HasKey(p => p.Id);
+        b.Property(p => p.Title).HasMaxLength(500).IsRequired();
+        
+        b.HasOne(p => p.Circle)
+            .WithMany(c => c.Polls)
+            .HasForeignKey(p => p.CircleId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        b.HasIndex(p => p.CircleId);
+    }
+}
+
+public class PollOptionConfiguration : IEntityTypeConfiguration<PollOption>
+{
+    public void Configure(EntityTypeBuilder<PollOption> b)
+    {
+        b.ToTable("poll_options");
+        b.HasKey(po => po.Id);
+        b.Property(po => po.Text).HasMaxLength(500).IsRequired();
+        
+        b.HasOne(po => po.Poll)
+            .WithMany(p => p.Options)
+            .HasForeignKey(po => po.PollId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        b.HasIndex(po => new { po.PollId, po.Order });
+    }
+}
+
+public class VoteConfiguration : IEntityTypeConfiguration<Vote>
+{
+    public void Configure(EntityTypeBuilder<Vote> b)
+    {
+        b.ToTable("votes");
+        b.HasKey(v => v.Id);
+        
+        b.HasOne(v => v.Option)
+            .WithMany(po => po.Votes)
+            .HasForeignKey(v => v.PollOptionId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        b.HasOne(v => v.Person)
+            .WithMany()
+            .HasForeignKey(v => v.PersonId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        // Ensure one vote per person per poll
+        b.HasIndex(v => new { v.PollOptionId, v.PersonId }).IsUnique();
+    }
+}
+
+public class CirclesTaskConfiguration : IEntityTypeConfiguration<CirclesTask>
+{
+    public void Configure(EntityTypeBuilder<CirclesTask> b)
+    {
+        b.ToTable("circles_tasks");
+        b.HasKey(t => t.Id);
+        b.Property(t => t.Title).HasMaxLength(500).IsRequired();
+        b.Property(t => t.Description).IsRequired();
+        
+        b.HasOne(t => t.Circle)
+            .WithMany(c => c.Tasks)
+            .HasForeignKey(t => t.CircleId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        b.HasOne(t => t.CreatedBy)
+            .WithMany()
+            .HasForeignKey(t => t.CreatedByPersonId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        b.HasIndex(t => t.CircleId);
+        b.HasIndex(t => new { t.CircleId, t.CompletedAt });
+    }
+}
