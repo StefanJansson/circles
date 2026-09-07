@@ -1,0 +1,68 @@
+@page "/cirklar/{CircleId:guid}/meddelanden"
+@using Circles.Application.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inherits MeddelandenBase
+
+<PageTitle>Meddelanden — @CircleName</PageTitle>
+
+<div class="page-container">
+    <header class="page-header">
+        <a href="/cirklar/@CircleId" class="back-link">← @CircleName</a>
+        <h1>Meddelanden</h1>
+    </header>
+
+    @if (CanManage)
+    {
+        <div class="compose-card">
+            <h2 class="compose-title">Nytt meddelande</h2>
+            <div class="form-group">
+                <label for="title">Rubrik</label>
+                <input id="title" type="text" class="form-input"
+                       placeholder="Kort beskrivande rubrik…"
+                       @bind="NewTitle" maxlength="200" />
+            </div>
+            <div class="form-group">
+                <label for="body">Innehåll</label>
+                <textarea id="body" class="form-textarea"
+                          placeholder="Skriv ditt meddelande här…"
+                          rows="4"
+                          @bind="NewBody"></textarea>
+            </div>
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <p class="form-error">@ErrorMessage</p>
+            }
+            <button class="btn-primary" @onclick="PublishAsync" disabled="@IsSaving">
+                @(IsSaving ? "Publicerar…" : "Publicera")
+            </button>
+        </div>
+    }
+
+    @if (IsLoading)
+    {
+        <p class="loading-text">Laddar meddelanden…</p>
+    }
+    else if (Announcements.Count == 0)
+    {
+        <p class="empty-text">Inga meddelanden ännu.</p>
+    }
+    else
+    {
+        <ul class="announcement-list">
+            @foreach (var ann in Announcements)
+            {
+                <li class="announcement-card">
+                    <div class="announcement-header">
+                        <h2 class="announcement-title">@ann.Title</h2>
+                        <span class="announcement-meta">
+                            @ann.CreatedByName · @ann.CreatedAt.ToLocalTime().ToString("d MMM yyyy, HH:mm")
+                        </span>
+                    </div>
+                    <p class="announcement-body">@ann.Body</p>
+                </li>
+            }
+        </ul>
+    }
+</div>

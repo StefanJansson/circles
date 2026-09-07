@@ -32,5 +32,7 @@ public class Person
     // Relationships where this person is the target (e.g. Alexander is child in Johan GuardianOf Alexander).
     public ICollection<Relationship> IncomingRelationships { get; set; } = new List<Relationship>();
 
+    public ICollection<Announcement> AnnouncementsCreated { get; set; } = new List<Announcement>();
+
     public string FullName => $"{FirstName} {LastName}";
 }

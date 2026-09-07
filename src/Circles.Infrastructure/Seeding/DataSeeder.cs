@@ -286,6 +286,28 @@ public static class DataSeeder
         };
         db.Tasks.Add(circlesTask);
 
+
+        // ── Demo Announcements in P2016 ────────────────────────────────────
+        var ann1 = new Announcement
+        {
+            Id                = Id("ann:sakermote"),
+            CircleId          = p2016Id,
+            CreatedByPersonId = erikId,
+            Title             = "Säkerhetsmöte inför säsongsstart",
+            Body              = "Hej alla i P2016! Vi har ett obligatoriskt säkerhetsmöte torsdagen den 20 mars kl. 18:00 i klubbstugan. Alla spelare och föräldrar är välkomna.",
+            CreatedAt         = Now.AddDays(1)
+        };
+        var ann2 = new Announcement
+        {
+            Id                = Id("ann:troja"),
+            CircleId          = p2016Id,
+            CreatedByPersonId = erikId,
+            Title             = "Nya träningströjor har kommit!",
+            Body              = "De nya träningströjorna finns nu att hämta hos Lars i omklädningsrummet. Hämta er tröja senast på fredag.",
+            CreatedAt         = Now.AddDays(3)
+        };
+        db.Announcements.AddRange(ann1, ann2);
+
         await db.SaveChangesAsync();
     }
 }

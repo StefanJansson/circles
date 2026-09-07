@@ -21,6 +21,7 @@ public class CirclesDbContext : DbContext
     public DbSet<PollOption> PollOptions => Set<PollOption>();
     public DbSet<Vote> Votes => Set<Vote>();
     public DbSet<CirclesTask> Tasks => Set<CirclesTask>();
+    public DbSet<Announcement> Announcements => Set<Announcement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
