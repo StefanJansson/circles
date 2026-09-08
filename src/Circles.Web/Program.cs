@@ -213,6 +213,47 @@ app.MapPost("/auth/login", async (
     return Results.LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/hem" : returnUrl);
 });
 
+// ---- TEMPORARY login diagnostic (remove after troubleshooting) --------------
+// Reports the truth about the site-admin account in whatever database THIS app
+// instance is actually connected to. Leaks no secret: only the connected server
+// /database name, whether the account exists, its site-admin flag, the stored
+// hash length/prefix, and whether the documented bootstrap password verifies.
+// Open /auth/diag in the browser once, then this block should be deleted.
+app.MapGet("/auth/diag", async (
+    CirclesDbContext db,
+    IPasswordHasher hasher) =>
+{
+    const string email = "stefan@veum.se";
+    const string bootstrapPassword = "Leksand!";
+
+    var account = await db.UserAccounts
+        .FirstOrDefaultAsync(u => u.Email == email);
+
+    var totalAccounts = await db.UserAccounts.CountAsync();
+
+    return Results.Json(new
+    {
+        // Which database is this instance really talking to?
+        db.Database.GetDbConnection().DataSource,
+        Database = db.Database.GetDbConnection().Database,
+        canConnect = await db.Database.CanConnectAsync(),
+        totalAccounts,
+
+        // The account itself.
+        accountExists = account is not null,
+        isSiteAdmin = account?.IsSiteAdmin,
+        personIdIsNull = account?.PersonId is null,
+        hashLength = account?.PasswordHash?.Length,
+        hashPrefix = account?.PasswordHash is { Length: >= 7 }
+            ? account.PasswordHash[..7]
+            : account?.PasswordHash,
+
+        // Does the documented password verify against the STORED hash?
+        bootstrapPasswordVerifies = account?.PasswordHash is { Length: > 0 }
+            && hasher.Verify(bootstrapPassword, account.PasswordHash)
+    });
+});
+
 // ---- Organization registration wizard --------------------------------------
 // Creates a new organization, its admin account and its teams, then signs the
 // new admin in. Posted from the final step of the /registrera wizard.
