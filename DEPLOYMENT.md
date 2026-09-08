@@ -58,6 +58,31 @@ Tomma/whitespace-värden behandlas som "inte satt".
 |------|-------|-----------|
 | `Auth__JwtSigningKey` | *(en hemlig nyckel, minst 32 tecken)* | Krävs i produktion för JWT-signering |
 
+### E-postnotifieringar (SMTP) — valfritt men rekommenderat i produktion
+
+Circles skickar e-postnotiser vid nya meddelanden, nya diskussioner och när en uppgift
+tilldelas en medlem. E-post skickas via SMTP (MailKit) och konfigureras via App Settings.
+Sätt dessa för **båda** apparna (webben skickar notiser vid åtgärder i UI:t; API:et vid
+åtgärder via API:et):
+
+| Namn | Exempelvärde | Kommentar |
+|------|--------------|-----------|
+| `Email__SmtpHost` | `smtp.sendgrid.net` | SMTP-serverns värdnamn. **Lämnas tomt = e-post stängs av** (ingen notis skickas, inget fel kastas) |
+| `Email__SmtpPort` | `587` | `587` = STARTTLS (standard), `465` = implicit TLS |
+| `Email__Username` | `apikey` | SMTP-användarnamn (för SendGrid är det ordagrant `apikey`) |
+| `Email__Password` | *(hemlig nyckel/lösenord)* | SMTP-lösenord eller API-nyckel — **checka aldrig in i git** |
+| `Email__FromAddress` | `noreply@circles.app` | Avsändaradress (bör vara en verifierad domän hos din leverantör) |
+| `Email__FromName` | `Circles` | Visningsnamn för avsändaren |
+
+> **Graceful fallback:** om `Email__SmtpHost` är tomt loggas en varning och notiserna
+> hoppas tyst över — appen fungerar normalt utan e-postkonfiguration (bra för dev/test).
+> Notiser skickas dessutom "fire-and-forget": ett SMTP-fel stoppar aldrig själva åtgärden
+> (att publicera ett meddelande, starta en diskussion eller tilldela en uppgift).
+
+> **Leverantörer:** valfri SMTP-tjänst fungerar. Vanliga val på Azure är **SendGrid**
+> (`smtp.sendgrid.net:587`, användarnamn `apikey`) eller **Azure Communication Services**
+> (Email). Endast aktiva medlemmar med ett kopplat konto (e-postadress) får notiser.
+
 ---
 
 ## 3. Connection string-format för Azure SQL
@@ -98,7 +123,8 @@ att ändra schema (skapa tabeller) första gången.
 2. `ASPNETCORE_ENVIRONMENT=Production` satt.
 3. `ConnectionStrings__Circles` satt (eller Connection strings-sektionen).
 4. `Auth__JwtSigningKey` satt (endast API:et).
-5. Managed identity aktiverad och har DB-rättigheter (om passwordless).
-6. Push till `main` → GitHub Actions bygger och deployar.
-7. Verifiera: `https://<app>.azurewebsites.net/health` (API) svarar, och webben visar
+5. `Email__*` satt om e-postnotiser ska skickas (annars hoppas de tyst över).
+6. Managed identity aktiverad och har DB-rättigheter (om passwordless).
+7. Push till `main` → GitHub Actions bygger och deployar.
+8. Verifiera: `https://<app>.azurewebsites.net/health` (API) svarar, och webben visar
    inloggningssidan istället för Azure default-sidan.

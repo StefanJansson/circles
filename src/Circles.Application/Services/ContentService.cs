@@ -4,6 +4,8 @@ using Circles.Domain.Enums;
 using Circles.Domain.Interfaces;
 using Circles.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Circles.Application.Services;
 
@@ -17,11 +19,58 @@ public class ContentService
 {
     private readonly CirclesDbContext _db;
     private readonly IAuthorizationService _authz;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<ContentService> _logger;
 
-    public ContentService(CirclesDbContext db, IAuthorizationService authz)
+    public ContentService(
+        CirclesDbContext db,
+        IAuthorizationService authz,
+        IServiceScopeFactory scopeFactory,
+        ILogger<ContentService> logger)
     {
         _db = db;
         _authz = authz;
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Runs a notification action on a background task in its own DI scope, so it
+    /// never touches the request-scoped DbContext. Failures are logged, not thrown.
+    /// </summary>
+    private void DispatchNotification(Func<NotificationService, Task> action, string context)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var notifications = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                await action(notifications);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Kunde inte skicka notis ({Context}).", context);
+            }
+        });
+    }
+
+    private async Task<string> PersonNameAsync(Guid personId)
+    {
+        var name = await _db.Persons
+            .Where(p => p.Id == personId)
+            .Select(p => p.FirstName + " " + p.LastName)
+            .FirstOrDefaultAsync();
+        return name ?? "En medlem";
+    }
+
+    private async Task<string> CircleNameAsync(Guid circleId)
+    {
+        var name = await _db.Circles
+            .Where(c => c.Id == circleId)
+            .Select(c => c.Name)
+            .FirstOrDefaultAsync();
+        return name ?? "din cirkel";
     }
 
     // ─── helpers ─────────────────────────────────────────────────────────────
@@ -125,6 +174,14 @@ public class ContentService
         _db.Discussions.Add(discussion);
         _db.Posts.Add(post);
         await _db.SaveChangesAsync();
+
+        // Fire-and-forget e-mail notification to circle members.
+        var authorName = await PersonNameAsync(personId);
+        var discussionTitle = discussion.Title;
+        DispatchNotification(
+            n => n.NotifyNewDiscussionAsync(circleId, discussionTitle, authorName, personId),
+            $"ny diskussion i cirkel {circleId}");
+
         return discussion.Id;
     }
 
@@ -332,6 +389,18 @@ public class ContentService
 
         _db.Tasks.Add(task);
         await _db.SaveChangesAsync();
+
+        // Notify the assignee (if any) that a task has been assigned to them.
+        if (validAssigneeId is { } assigneeId)
+        {
+            var circleName = await CircleNameAsync(circleId);
+            var assignedByName = await PersonNameAsync(personId);
+            var taskTitle = task.Title;
+            DispatchNotification(
+                n => n.NotifyTaskAssignedAsync(assigneeId, taskTitle, circleName, assignedByName),
+                $"uppgiftstilldelning i cirkel {circleId}");
+        }
+
         return task.Id;
     }
 

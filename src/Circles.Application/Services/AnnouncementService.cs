@@ -3,6 +3,8 @@ using Circles.Domain.Enums;
 using Circles.Domain.Interfaces;
 using Circles.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Circles.Application.Services;
 
@@ -20,7 +22,11 @@ public record AnnouncementDto(
     string? EventTitle
 );
 
-public class AnnouncementService(CirclesDbContext db, IAuthorizationService authz)
+public class AnnouncementService(
+    CirclesDbContext db,
+    IAuthorizationService authz,
+    IServiceScopeFactory scopeFactory,
+    ILogger<AnnouncementService> logger)
 {
     private async Task RequirePermissionAsync(Guid personId, Guid circleId, PermissionType perm)
     {
@@ -79,7 +85,7 @@ public class AnnouncementService(CirclesDbContext db, IAuthorizationService auth
         db.Announcements.Add(announcement);
         await db.SaveChangesAsync();
 
-        return await db.Announcements
+        var dto = await db.Announcements
             .Where(a => a.Id == announcement.Id)
             .Select(a => new AnnouncementDto(
                 a.Id,
@@ -95,5 +101,32 @@ public class AnnouncementService(CirclesDbContext db, IAuthorizationService auth
                 a.Event != null ? a.Event.Title : null
             ))
             .FirstAsync();
+
+        // Fire-and-forget e-mail notification to circle members.
+        DispatchNotification(circleId, dto.Title, dto.CreatedByName, personId);
+
+        return dto;
+    }
+
+    /// <summary>
+    /// Sends the "new announcement" notification on a background task in its own
+    /// DI scope (so it does not use the request-scoped DbContext, which may be
+    /// disposed once the request completes). Any failure is logged, never thrown.
+    /// </summary>
+    private void DispatchNotification(Guid circleId, string title, string authorName, Guid authorPersonId)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var notifications = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                await notifications.NotifyNewAnnouncementAsync(circleId, title, authorName, authorPersonId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Kunde inte skicka notis om nytt meddelande i cirkel {CircleId}.", circleId);
+            }
+        });
     }
 }
