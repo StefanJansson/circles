@@ -1,8 +1,11 @@
 @page "/cirklar/{Id:guid}"
+@using Circles.Application.Services
+@using Circles.Domain.Enums
 @using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject CirclesQueryService Circles
+@inject ModuleService Modules
 @inject AuthenticationStateProvider AuthState
 
 <PageTitle>@(_circle?.Name ?? "Cirkel") · Circles</PageTitle>
@@ -41,10 +44,26 @@ else
     <!-- Tab-navigering -->
     <nav class="circle-tabs">
         <a class="circle-tab circle-tab-active" href="/cirklar/@Id">Medlemmar</a>
-        <a class="circle-tab" href="/cirklar/@Id/diskussioner">Diskussioner</a>
-        <a class="circle-tab" href="/cirklar/@Id/omrostningar">Omröstningar</a>
-        <a class="circle-tab" href="/cirklar/@Id/uppgifter">Uppgifter</a>
-        <a class="circle-tab" href="/cirklar/@Id/meddelanden">Meddelanden</a>
+        @if (_enabledModules.Contains(ModuleType.Discussions))
+        {
+            <a class="circle-tab" href="/cirklar/@Id/diskussioner">Diskussioner</a>
+        }
+        @if (_enabledModules.Contains(ModuleType.Polls))
+        {
+            <a class="circle-tab" href="/cirklar/@Id/omrostningar">Omröstningar</a>
+        }
+        @if (_enabledModules.Contains(ModuleType.Tasks))
+        {
+            <a class="circle-tab" href="/cirklar/@Id/uppgifter">Uppgifter</a>
+        }
+        @if (_enabledModules.Contains(ModuleType.Events))
+        {
+            <a class="circle-tab" href="/cirklar/@Id/handelser">Händelser</a>
+        }
+        @if (_enabledModules.Contains(ModuleType.Announcements))
+        {
+            <a class="circle-tab" href="/cirklar/@Id/meddelanden">Meddelanden</a>
+        }
     </nav>
 
     <section>
@@ -77,6 +96,7 @@ else
 
     private CircleAccessDto? _circle;
     private List<MemberDto>? _members;
+    private List<ModuleType> _enabledModules = new();
     private bool _loading = true;
     private string? _error;
 
@@ -96,7 +116,10 @@ else
             _circle = accessible.FirstOrDefault(c => c.CircleId == Id);
 
             if (_circle is not null)
+            {
                 _members = await Circles.GetActiveMembersAsync(Id);
+                _enabledModules = await Modules.GetEnabledModulesForCircleAsync(Id);
+            }
         }
         catch
         {

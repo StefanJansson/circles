@@ -6,6 +6,7 @@ using Circles.Domain.Interfaces;
 using Circles.Infrastructure.Persistence;
 using Circles.Infrastructure.Security;
 using Circles.Infrastructure.Seeding;
+using Circles.Infrastructure.Sync;
 using Circles.Web.Auth;
 using Circles.Web.Components;
 using Microsoft.AspNetCore.Authentication;
@@ -58,6 +59,9 @@ builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddScoped<CirclesQueryService>();
 builder.Services.AddScoped<ContentService>();
 builder.Services.AddScoped<AnnouncementService>();
+builder.Services.AddScoped<ModuleService>();
+builder.Services.AddScoped<EventService>();
+builder.Services.AddHttpClient<ICalendarSyncService, LagetSeCalendarSyncService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<AuthService>();
 

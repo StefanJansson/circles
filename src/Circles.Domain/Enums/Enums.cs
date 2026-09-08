@@ -52,3 +52,30 @@ public enum PermissionType
     ViewMemberList = 8,
     ViewHistoricalInfo = 9
 }
+
+/// <summary>
+/// A feature module that can be switched on or off per organization.
+/// Modules are opt-in: each club (organization) decides which features it uses,
+/// so sport-specific capabilities (e.g. events, attendance) are never forced on
+/// every organization.
+/// </summary>
+public enum ModuleType
+{
+    Announcements = 0,
+    Discussions = 1,
+    Polls = 2,
+    Tasks = 3,
+    Events = 4,
+    Attendance = 5
+}
+
+/// <summary>
+/// The kind of a calendar event. Mapped from the external calendar feed's
+/// category (e.g. laget.se: "Match" → Match, "Träning" → Training, other → Other).
+/// </summary>
+public enum EventType
+{
+    Match = 0,
+    Training = 1,
+    Other = 2
+}

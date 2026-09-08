@@ -4,6 +4,7 @@ using Circles.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Circles.Infrastructure.Migrations
 {
     [DbContext(typeof(CirclesDbContext))]
-    partial class CirclesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260908150228_Task7a_ModulesAndEvents")]
+    partial class Task7a_ModulesAndEvents
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

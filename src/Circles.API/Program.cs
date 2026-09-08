@@ -6,6 +6,7 @@ using Circles.Domain.Interfaces;
 using Circles.Infrastructure.Persistence;
 using Circles.Infrastructure.Security;
 using Circles.Infrastructure.Seeding;
+using Circles.Infrastructure.Sync;
 using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
@@ -55,6 +56,9 @@ builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddScoped<CirclesQueryService>();
 builder.Services.AddScoped<ContentService>();
 builder.Services.AddScoped<AnnouncementService>();
+builder.Services.AddScoped<ModuleService>();
+builder.Services.AddScoped<EventService>();
+builder.Services.AddHttpClient<ICalendarSyncService, LagetSeCalendarSyncService>();
 
 // Authentication / onboarding services.
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();

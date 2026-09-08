@@ -1,0 +1,71 @@
+@page "/cirklar/{CircleId:guid}/handelser"
+@using Circles.Application.Services
+@using Circles.Domain.Enums
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inherits HandelserBase
+
+<PageTitle>Händelser — @CircleName</PageTitle>
+
+<div class="page-container">
+    <header class="page-header">
+        <a href="/cirklar/@CircleId" class="back-link">← @CircleName</a>
+        <h1>Händelser</h1>
+    </header>
+
+    @if (CanManage)
+    {
+        <div class="sync-bar">
+            <div class="sync-info">
+                <span class="sync-label">Kalendern synkas från laget.se</span>
+                @if (!string.IsNullOrEmpty(SyncMessage))
+                {
+                    <span class="sync-status">@SyncMessage</span>
+                }
+            </div>
+            <button class="btn-primary" @onclick="SyncAsync" disabled="@IsSyncing">
+                @(IsSyncing ? "Synkroniserar…" : "Synka från laget.se")
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <p class="form-error">@ErrorMessage</p>
+    }
+
+    @if (IsLoading)
+    {
+        <p class="loading-text">Laddar händelser…</p>
+    }
+    else if (Events.Count == 0)
+    {
+        <p class="empty-text">Inga händelser ännu.</p>
+    }
+    else
+    {
+        <ul class="event-list">
+            @foreach (var ev in Events)
+            {
+                <li class="event-card @(IsPast(ev) ? "event-past" : "")">
+                    <div class="event-when">
+                        <span class="event-badge @TypeCssClass(ev.Type)">@TypeLabel(ev.Type)</span>
+                        <span class="event-datetime">@FormatWhen(ev)</span>
+                    </div>
+                    <div class="event-body">
+                        <h2 class="event-title">@ev.Title</h2>
+                        @if (!string.IsNullOrWhiteSpace(ev.Location))
+                        {
+                            <p class="event-location">📍 @ev.Location</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(ev.Description))
+                        {
+                            <p class="event-description">@ev.Description</p>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>

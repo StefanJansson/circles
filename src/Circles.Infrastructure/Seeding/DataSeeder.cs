@@ -7,8 +7,9 @@ namespace Circles.Infrastructure.Seeding;
 
 /// <summary>
 /// Seeds the database with realistic Swedish demo data for the fictional club
-/// "Uppsala IK", plus the role → permission mapping. Deterministic GUIDs are used
-/// so the seed is idempotent and stable across runs.
+/// "Danmarks IF", plus the role → permission mapping and the club's opt-in
+/// feature modules. Deterministic GUIDs are used so the seed is idempotent and
+/// stable across runs.
 /// </summary>
 public static class DataSeeder
 {
@@ -28,7 +29,34 @@ public static class DataSeeder
     {
         await SeedRolePermissionsAsync(db);
         await SeedUppsalaIkAsync(db);
+        await SeedModulesAsync(db);
         await SeedContentAsync(db);
+    }
+
+    /// <summary>
+    /// Enables every feature module for the demo club. Modules are opt-in per
+    /// organization; Danmarks IF has switched them all on so the prototype shows
+    /// the full feature set. Idempotent — skipped if modules already exist.
+    /// </summary>
+    private static async Task SeedModulesAsync(CirclesDbContext db)
+    {
+        if (await db.OrganizationModules.AnyAsync()) return;
+
+        var orgId = Id("org:uppsala-ik");
+
+        foreach (ModuleType module in Enum.GetValues<ModuleType>())
+        {
+            db.OrganizationModules.Add(new OrganizationModule
+            {
+                Id = Id($"module:{orgId}:{module}"),
+                OrganizationId = orgId,
+                Module = module,
+                IsEnabled = true,
+                CreatedAt = Now
+            });
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task SeedRolePermissionsAsync(CirclesDbContext db)
@@ -56,11 +84,14 @@ public static class DataSeeder
         if (await db.Organizations.AnyAsync()) return;
 
         // ---- Organization -------------------------------------------------
+        // Deterministic Id keys are kept as the original "uppsala-ik" strings so
+        // existing seeded FK relationships and test GUIDs stay stable; only the
+        // display Name/Slug change to the club's current name, Danmarks IF.
         var org = new Organization
         {
             Id = Id("org:uppsala-ik"),
-            Name = "Uppsala IK",
-            Slug = "uppsala-ik",
+            Name = "Danmarks IF",
+            Slug = "danmarks-if",
             CreatedAt = Now
         };
         db.Organizations.Add(org);
@@ -71,8 +102,8 @@ public static class DataSeeder
             Id = Id("circle:uppsala-ik"),
             OrganizationId = org.Id,
             ParentCircleId = null,
-            Name = "Uppsala IK",
-            Slug = "uppsala-ik",
+            Name = "Danmarks IF",
+            Slug = "danmarks-if",
             Type = CircleType.General,
             CreatedAt = Now
         };
@@ -84,6 +115,9 @@ public static class DataSeeder
             Name = "P2016",
             Slug = "p2016",
             Type = CircleType.Team,
+            // laget.se subscription — during the transition the team keeps its
+            // schedule on laget.se and Circles simply syncs it in.
+            LagetSeCalendarUrl = "https://cal.laget.se/U15-.ics",
             CreatedAt = Now
         };
         var p2014 = new Circle
@@ -307,6 +341,54 @@ public static class DataSeeder
             CreatedAt         = Now.AddDays(3)
         };
         db.Announcements.AddRange(ann1, ann2);
+
+        // ── Demo Events in P2016 ───────────────────────────────────────────
+        // Locally seeded events (ExternalId = null, ExternalSource = "seed") so
+        // the calendar shows content even before a live laget.se sync runs. Real
+        // events are imported on demand via the "Synka från laget.se" button.
+        var ev1 = new Event
+        {
+            Id             = Id("event:trupptraning"),
+            CircleId       = p2016Id,
+            Title          = "Träning – teknik och passningsspel",
+            Description    = "Ta med vattenflaska och benskydd. Vi kör teknikövningar och avslutar med spel.",
+            Type           = EventType.Training,
+            StartsAt       = Now.AddDays(14).AddHours(18),
+            EndsAt         = Now.AddDays(14).AddHours(19).AddMinutes(30),
+            Location       = "Studenternas IP, plan 3",
+            ExternalId     = null,
+            ExternalSource = "seed",
+            CreatedAt      = Now
+        };
+        var ev2 = new Event
+        {
+            Id             = Id("event:seriematch"),
+            CircleId       = p2016Id,
+            Title          = "Seriematch: Danmarks IF – Sirius IK",
+            Description    = "Samling 45 minuter före avspark. Matchtröjor delas ut på plats.",
+            Type           = EventType.Match,
+            StartsAt       = Now.AddDays(17).AddHours(11),
+            EndsAt         = Now.AddDays(17).AddHours(12).AddMinutes(30),
+            Location       = "Danmarks IP",
+            ExternalId     = null,
+            ExternalSource = "seed",
+            CreatedAt      = Now
+        };
+        var ev3 = new Event
+        {
+            Id             = Id("event:lagfest"),
+            CircleId       = p2016Id,
+            Title          = "Lagavslutning med korvgrillning",
+            Description    = "Familjefest för hela laget. Föräldrar hjälps åt med grillningen.",
+            Type           = EventType.Other,
+            StartsAt       = Now.AddDays(45).AddHours(15),
+            EndsAt         = Now.AddDays(45).AddHours(18),
+            Location       = "Klubbstugan",
+            ExternalId     = null,
+            ExternalSource = "seed",
+            CreatedAt      = Now
+        };
+        db.Events.AddRange(ev1, ev2, ev3);
 
         await db.SaveChangesAsync();
     }

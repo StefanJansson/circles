@@ -22,6 +22,8 @@ public class CirclesDbContext : DbContext
     public DbSet<Vote> Votes => Set<Vote>();
     public DbSet<CirclesTask> Tasks => Set<CirclesTask>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
+    public DbSet<Event> Events => Set<Event>();
+    public DbSet<OrganizationModule> OrganizationModules => Set<OrganizationModule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

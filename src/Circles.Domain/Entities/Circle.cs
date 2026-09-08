@@ -28,6 +28,10 @@ public class Circle
 
     public CircleType Type { get; set; }
 
+    // Optional external calendar subscription (ICS/iCal URL) for this circle,
+    // e.g. a team's laget.se feed. When set, events can be synced in from it.
+    public string? LagetSeCalendarUrl { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Membership> Memberships { get; set; } = new List<Membership>();
@@ -35,4 +39,5 @@ public class Circle
     public ICollection<Poll> Polls { get; set; } = new List<Poll>();
     public ICollection<CirclesTask> Tasks { get; set; } = new List<CirclesTask>();
     public ICollection<Announcement> Announcements { get; set; } = new List<Announcement>();
+    public ICollection<Event> Events { get; set; } = new List<Event>();
 }

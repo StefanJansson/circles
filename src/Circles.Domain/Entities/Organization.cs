@@ -17,4 +17,7 @@ public class Organization
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Circle> Circles { get; set; } = new List<Circle>();
+
+    // Opt-in feature modules this organization has enabled.
+    public ICollection<OrganizationModule> Modules { get; set; } = new List<OrganizationModule>();
 }
