@@ -18,8 +18,10 @@ public partial class Diskussioner
     private bool _saving;
     private string _newTitle = "";
     private string _newBody = "";
+    private string _newEventId = "";   // "" = no linked event
     private string? _formError;
     private Guid _personId;
+    private List<EventDto> _events = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -33,7 +35,12 @@ public partial class Diskussioner
             var accessible = await Circles.GetAccessibleCirclesAsync(_personId);
             _circle = accessible.FirstOrDefault(c => c.CircleId == Id);
             if (_circle is not null)
+            {
                 _discussions = await Content.GetDiscussionsAsync(Id, _personId);
+                // Load events so a discussion can be linked to one. Empty if module unused.
+                try { _events = await Events.GetEventsAsync(_personId, Id); }
+                catch { _events = []; }
+            }
         }
         catch (UnauthorizedAccessException)
         {
@@ -61,7 +68,8 @@ public partial class Diskussioner
         _saving = true;
         try
         {
-            var id = await Content.CreateDiscussionAsync(Id, _personId, _newTitle, _newBody);
+            Guid? eventId = Guid.TryParse(_newEventId, out var eid) ? eid : null;
+            var id = await Content.CreateDiscussionAsync(Id, _personId, _newTitle, _newBody, eventId);
             GoToDiscussion(id);
         }
         catch (UnauthorizedAccessException)
@@ -76,4 +84,17 @@ public partial class Diskussioner
     }
 
     private void GoToDiscussion(Guid id) => Nav.NavigateTo("/diskussioner/" + id);
+
+    /// <summary>Swedish short label for an event option, e.g. "Match · Titel (18 jan)".</summary>
+    private static string EventOptionLabel(EventDto ev)
+    {
+        var culture = System.Globalization.CultureInfo.GetCultureInfo("sv-SE");
+        var typeLabel = ev.Type switch
+        {
+            global::Circles.Domain.Enums.EventType.Match => "Match",
+            global::Circles.Domain.Enums.EventType.Training => "Träning",
+            _ => "Övrigt"
+        };
+        return $"{typeLabel} · {ev.Title} ({ev.StartsAt.ToString("d MMM", culture)})";
+    }
 }

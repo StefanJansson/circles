@@ -30,6 +30,19 @@
                           rows="4"
                           @bind="NewBody"></textarea>
             </div>
+            @if (Events.Count > 0)
+            {
+                <div class="form-group">
+                    <label for="event">Koppla till händelse (valfritt)</label>
+                    <select id="event" class="form-input" @bind="NewEventId">
+                        <option value="">— Ingen händelse —</option>
+                        @foreach (var ev in Events)
+                        {
+                            <option value="@ev.Id">@EventOptionLabel(ev)</option>
+                        }
+                    </select>
+                </div>
+            }
             @if (!string.IsNullOrEmpty(ErrorMessage))
             {
                 <p class="form-error">@ErrorMessage</p>
@@ -61,6 +74,12 @@
                         </span>
                     </div>
                     <p class="announcement-body">@ann.Body</p>
+                    @if (ann.EventTitle is not null)
+                    {
+                        <a class="event-link-badge" href="/cirklar/@CircleId/handelser">
+                            <span class="event-link-icon">📅</span>@ann.EventTitle
+                        </a>
+                    }
                 </li>
             }
         </ul>

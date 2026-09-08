@@ -12,14 +12,26 @@ public partial class Uppgifter
 
     private CircleAccessDto? _circle;
     private List<CirclesTaskDto>? _tasks;
+    private List<MemberDto> _members = new();
     private bool _loading = true;
     private string? _error;
+
+    // Top-level "new task" form
     private bool _showForm;
     private bool _saving;
     private string _newTitle = "";
     private string _newDescription = "";
     private DateTime? _newDueDate;
+    private string _newAssignee = "";      // "" = unassigned, else person id
     private string? _formError;
+
+    // Inline "new sub-task" form (one open at a time, keyed by parent id)
+    private Guid? _subtaskParentId;
+    private string _subtaskTitle = "";
+    private string _subtaskAssignee = "";
+    private bool _subtaskSaving;
+    private string? _subtaskError;
+
     private Guid _personId;
 
     protected override async Task OnInitializedAsync()
@@ -34,7 +46,10 @@ public partial class Uppgifter
             var accessible = await Circles.GetAccessibleCirclesAsync(_personId);
             _circle = accessible.FirstOrDefault(c => c.CircleId == Id);
             if (_circle is not null)
+            {
+                _members = await Circles.GetActiveMembersAsync(Id);
                 _tasks = await Content.GetTasksAsync(Id, _personId);
+            }
         }
         catch (UnauthorizedAccessException)
         {
@@ -46,6 +61,8 @@ public partial class Uppgifter
         }
         finally { _loading = false; }
     }
+
+    // ── Top-level task ────────────────────────────────────────────────────────
 
     private void ToggleForm()
     {
@@ -61,10 +78,14 @@ public partial class Uppgifter
         _saving = true;
         try
         {
-            await Content.CreateTaskAsync(Id, _personId, _newTitle, _newDescription, _newDueDate);
+            Guid? assignee = Guid.TryParse(_newAssignee, out var a) ? a : null;
+            await Content.CreateTaskAsync(
+                Id, _personId, _newTitle, _newDescription, _newDueDate,
+                parentTaskId: null, assignedToPersonId: assignee);
             _newTitle = "";
             _newDescription = "";
             _newDueDate = null;
+            _newAssignee = "";
             _showForm = false;
             _tasks = await Content.GetTasksAsync(Id, _personId);
         }
@@ -79,6 +100,53 @@ public partial class Uppgifter
         finally { _saving = false; }
     }
 
+    // ── Sub-task ──────────────────────────────────────────────────────────────
+
+    private void ToggleSubtaskForm(Guid parentId)
+    {
+        if (_subtaskParentId == parentId)
+        {
+            _subtaskParentId = null;
+        }
+        else
+        {
+            _subtaskParentId = parentId;
+            _subtaskTitle = "";
+            _subtaskAssignee = "";
+        }
+        _subtaskError = null;
+    }
+
+    private async Task CreateSubtask(Guid parentId)
+    {
+        _subtaskError = null;
+        if (string.IsNullOrWhiteSpace(_subtaskTitle)) { _subtaskError = "Titel krävs."; return; }
+
+        _subtaskSaving = true;
+        try
+        {
+            Guid? assignee = Guid.TryParse(_subtaskAssignee, out var a) ? a : null;
+            await Content.CreateTaskAsync(
+                Id, _personId, _subtaskTitle, "", null,
+                parentTaskId: parentId, assignedToPersonId: assignee);
+            _subtaskParentId = null;
+            _subtaskTitle = "";
+            _subtaskAssignee = "";
+            _tasks = await Content.GetTasksAsync(Id, _personId);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _subtaskError = "Du saknar behörighet att skapa deluppgifter.";
+        }
+        catch
+        {
+            _subtaskError = "Kunde inte spara deluppgiften.";
+        }
+        finally { _subtaskSaving = false; }
+    }
+
+    // ── Complete toggle ───────────────────────────────────────────────────────
+
     private async Task ToggleTask(Guid taskId)
     {
         try
@@ -88,4 +156,12 @@ public partial class Uppgifter
         }
         catch { /* ignorera tyst */ }
     }
+
+    // ── View helpers ──────────────────────────────────────────────────────────
+
+    private IEnumerable<CirclesTaskDto> SubTasksOf(Guid parentId) =>
+        _tasks?.Where(t => t.ParentTaskId == parentId)
+               .OrderBy(t => t.IsCompleted)
+               .ThenBy(t => t.CreatedAt)
+        ?? Enumerable.Empty<CirclesTaskDto>();
 }

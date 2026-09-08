@@ -53,7 +53,9 @@ public class ContentService
                 d.OriginalPoster!.FirstName + " " + d.OriginalPoster.LastName,
                 d.Posts.Count,
                 d.CreatedAt,
-                d.Posts.Any() ? d.Posts.Max(p => (DateTime?)p.CreatedAt) : null))
+                d.Posts.Any() ? d.Posts.Max(p => (DateTime?)p.CreatedAt) : null,
+                d.EventId,
+                d.Event != null ? d.Event.Title : null))
             .ToListAsync();
     }
 
@@ -61,6 +63,7 @@ public class ContentService
     {
         var d = await _db.Discussions
             .Include(d => d.OriginalPoster)
+            .Include(d => d.Event)
             .Include(d => d.Posts).ThenInclude(p => p.Person)
             .FirstOrDefaultAsync(d => d.Id == discussionId);
 
@@ -82,13 +85,23 @@ public class ContentService
                     p.Person!.FullName,
                     p.Content,
                     p.CreatedAt))
-                .ToList());
+                .ToList(),
+            d.EventId,
+            d.Event?.Title);
     }
 
     public async Task<Guid> CreateDiscussionAsync(
-        Guid circleId, Guid personId, string title, string firstPost)
+        Guid circleId, Guid personId, string title, string firstPost, Guid? eventId = null)
     {
         await RequirePermissionAsync(personId, circleId, PermissionType.CreateDiscussion);
+
+        // Only accept an event link that belongs to the same circle.
+        Guid? validEventId = null;
+        if (eventId is { } eid)
+        {
+            var belongs = await _db.Events.AnyAsync(e => e.Id == eid && e.CircleId == circleId);
+            if (belongs) validEventId = eid;
+        }
 
         var discussion = new Discussion
         {
@@ -96,6 +109,7 @@ public class ContentService
             CircleId = circleId,
             OriginalPosterPersonId = personId,
             Title = title.Trim(),
+            EventId = validEventId,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -263,14 +277,45 @@ public class ContentService
                 t.CreatedAt,
                 t.DueDate,
                 t.CompletedAt.HasValue,
-                t.CompletedAt))
+                t.CompletedAt,
+                t.ParentTaskId,
+                t.AssignedToPersonId,
+                t.AssignedTo != null
+                    ? t.AssignedTo.FirstName + " " + t.AssignedTo.LastName
+                    : null))
             .ToListAsync();
     }
 
     public async Task<Guid> CreateTaskAsync(
-        Guid circleId, Guid personId, string title, string description, DateTime? dueDate)
+        Guid circleId, Guid personId, string title, string description, DateTime? dueDate,
+        Guid? parentTaskId = null, Guid? assignedToPersonId = null)
     {
         await RequirePermissionAsync(personId, circleId, PermissionType.CreateTask);
+
+        // A sub-task's parent must be an existing task in the same circle.
+        // Only one level of nesting is allowed (a sub-task cannot have children).
+        Guid? validParentId = null;
+        if (parentTaskId is { } pid)
+        {
+            var parent = await _db.Tasks
+                .FirstOrDefaultAsync(t => t.Id == pid && t.CircleId == circleId)
+                ?? throw new InvalidOperationException("Den valda överuppgiften finns inte i cirkeln.");
+            if (parent.ParentTaskId is not null)
+                throw new InvalidOperationException("En deluppgift kan inte ha egna deluppgifter.");
+            validParentId = pid;
+        }
+
+        // The assignee must be an active member of the circle.
+        Guid? validAssigneeId = null;
+        if (assignedToPersonId is { } aid)
+        {
+            var isMember = await _db.Memberships.AnyAsync(m =>
+                m.CircleId == circleId
+                && m.PersonId == aid
+                && m.ValidFrom <= DateTime.UtcNow
+                && (m.ValidUntil == null || m.ValidUntil > DateTime.UtcNow));
+            if (isMember) validAssigneeId = aid;
+        }
 
         var task = new CirclesTask
         {
@@ -280,6 +325,8 @@ public class ContentService
             Title = title.Trim(),
             Description = description.Trim(),
             DueDate = dueDate,
+            ParentTaskId = validParentId,
+            AssignedToPersonId = validAssigneeId,
             CreatedAt = DateTime.UtcNow
         };
 

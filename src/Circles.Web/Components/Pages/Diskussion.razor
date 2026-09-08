@@ -37,6 +37,12 @@ else
     <div class="thread-head">
         <h1>@_discussion.Title</h1>
         <p class="thread-head-meta">Startad av @_discussion.OriginalPosterName · @_discussion.CreatedAt.ToString("d MMMM yyyy")</p>
+        @if (_discussion.EventTitle is not null)
+        {
+            <a class="event-link-badge" href="/cirklar/@_discussion.CircleId/handelser">
+                <span class="event-link-icon">📅</span>@_discussion.EventTitle
+            </a>
+        }
     </div>
 
     <section class="posts-section">

@@ -15,7 +15,9 @@ public record AnnouncementDto(
     string Title,
     string Body,
     DateTime CreatedAt,
-    DateTime? UpdatedAt
+    DateTime? UpdatedAt,
+    Guid? EventId,
+    string? EventTitle
 );
 
 public class AnnouncementService(CirclesDbContext db, IAuthorizationService authz)
@@ -43,15 +45,25 @@ public class AnnouncementService(CirclesDbContext db, IAuthorizationService auth
                 a.Title,
                 a.Body,
                 a.CreatedAt,
-                a.UpdatedAt
+                a.UpdatedAt,
+                a.EventId,
+                a.Event != null ? a.Event.Title : null
             ))
             .ToListAsync();
     }
 
     public async Task<AnnouncementDto> CreateAnnouncementAsync(
-        Guid personId, Guid circleId, string title, string body)
+        Guid personId, Guid circleId, string title, string body, Guid? eventId = null)
     {
         await RequirePermissionAsync(personId, circleId, PermissionType.PublishAnnouncements);
+
+        // Only accept an event link that belongs to the same circle.
+        Guid? validEventId = null;
+        if (eventId is { } eid)
+        {
+            var belongs = await db.Events.AnyAsync(e => e.Id == eid && e.CircleId == circleId);
+            if (belongs) validEventId = eid;
+        }
 
         var announcement = new Announcement
         {
@@ -60,6 +72,7 @@ public class AnnouncementService(CirclesDbContext db, IAuthorizationService auth
             CreatedByPersonId = personId,
             Title = title.Trim(),
             Body = body.Trim(),
+            EventId = validEventId,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -77,7 +90,9 @@ public class AnnouncementService(CirclesDbContext db, IAuthorizationService auth
                 a.Title,
                 a.Body,
                 a.CreatedAt,
-                a.UpdatedAt
+                a.UpdatedAt,
+                a.EventId,
+                a.Event != null ? a.Event.Title : null
             ))
             .FirstAsync();
     }

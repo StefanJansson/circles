@@ -9,6 +9,10 @@ public class CreateTaskRequest
     public string Title { get; set; } = "";
     public string? Description { get; set; }
     public DateTime? DueDate { get; set; }
+
+    // Task 7c — optional parent task (makes this a sub-task) and assignee.
+    public Guid? ParentTaskId { get; set; }
+    public Guid? AssignedToPersonId { get; set; }
 }
 
 public record CreateTaskResponse(Guid Id);
@@ -48,13 +52,19 @@ public class CreateTaskEndpoint : Endpoint<CreateTaskRequest, CreateTaskResponse
         try
         {
             var id = await _svc.CreateTaskAsync(
-                req.CircleId, personId, req.Title, req.Description ?? "", req.DueDate);
+                req.CircleId, personId, req.Title, req.Description ?? "", req.DueDate,
+                req.ParentTaskId, req.AssignedToPersonId);
             await Send.CreatedAtAsync<GetTasksEndpoint>(
                 new { circleId = req.CircleId }, new CreateTaskResponse(id), cancellation: ct);
         }
         catch (UnauthorizedAccessException)
         {
             await Send.ForbiddenAsync(ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            AddError(ex.Message);
+            await Send.ErrorsAsync(400, ct);
         }
     }
 }

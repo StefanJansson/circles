@@ -9,6 +9,9 @@ public class CreateAnnouncementRequest
     public Guid CircleId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
+
+    // Optional link to a calendar event this announcement concerns (Task 7b).
+    public Guid? EventId { get; set; }
 }
 
 public class CreateAnnouncementValidator : Validator<CreateAnnouncementRequest>
@@ -48,7 +51,7 @@ public class CreateAnnouncementEndpoint(AnnouncementService announcementService)
         try
         {
             var announcement = await announcementService.CreateAnnouncementAsync(
-                personId, req.CircleId, req.Title, req.Body);
+                personId, req.CircleId, req.Title, req.Body, req.EventId);
             await Send.CreatedAtAsync<GetAnnouncementsEndpoint>(
                 new { circleId = req.CircleId }, announcement, cancellation: ct);
         }

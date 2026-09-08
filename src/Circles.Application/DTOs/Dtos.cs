@@ -54,7 +54,9 @@ public record DiscussionSummaryDto(
     string OriginalPosterName,
     int PostCount,
     DateTime CreatedAt,
-    DateTime? LatestPostAt);
+    DateTime? LatestPostAt,
+    Guid? EventId,
+    string? EventTitle);
 
 public record DiscussionDetailDto(
     Guid Id,
@@ -62,7 +64,9 @@ public record DiscussionDetailDto(
     string Title,
     string OriginalPosterName,
     DateTime CreatedAt,
-    List<PostDto> Posts);
+    List<PostDto> Posts,
+    Guid? EventId,
+    string? EventTitle);
 
 public record PostDto(
     Guid Id,
@@ -109,4 +113,7 @@ public record CirclesTaskDto(
     DateTime CreatedAt,
     DateTime? DueDate,
     bool IsCompleted,
-    DateTime? CompletedAt);
+    DateTime? CompletedAt,
+    Guid? ParentTaskId,
+    Guid? AssignedToPersonId,
+    string? AssignedToName);

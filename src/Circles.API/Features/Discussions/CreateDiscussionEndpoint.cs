@@ -8,6 +8,9 @@ public class CreateDiscussionRequest
     public Guid CircleId { get; set; }
     public string Title { get; set; } = "";
     public string Body { get; set; } = "";
+
+    // Optional link to a calendar event this discussion concerns (Task 7b).
+    public Guid? EventId { get; set; }
 }
 
 public record CreateDiscussionResponse(Guid Id);
@@ -46,7 +49,8 @@ public class CreateDiscussionEndpoint : Endpoint<CreateDiscussionRequest, Create
 
         try
         {
-            var id = await _svc.CreateDiscussionAsync(req.CircleId, personId, req.Title, req.Body);
+            var id = await _svc.CreateDiscussionAsync(
+                req.CircleId, personId, req.Title, req.Body, req.EventId);
             await Send.CreatedAtAsync<GetDiscussionEndpoint>(
                 new { id }, new CreateDiscussionResponse(id), cancellation: ct);
         }

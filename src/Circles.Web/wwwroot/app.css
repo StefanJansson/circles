@@ -610,3 +610,71 @@ a { color: inherit; text-decoration: none; }
     .event-card { flex-direction: column; gap: 0.6rem; }
     .event-when { flex-direction: row; align-items: center; min-width: 0; }
 }
+
+/* ── Task 7c — sub-tasks & assignees ─────────────────────────────────────── */
+.task-item { list-style: none; padding: 4px 0; border-bottom: 1px solid var(--hairline); }
+.task-item:last-child { border-bottom: none; }
+.task-sub-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.task-assignee {
+    font-size: 0.78rem;
+    color: var(--forest);
+    background: rgba(74,124,89,0.08);
+    padding: 1px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.subtask-list { list-style: none; margin: 2px 0 2px 34px; padding: 0; }
+.subtask-list .task-subrow {
+    padding: 6px 0;
+    border-bottom: none;
+    border-left: 2px solid var(--hairline);
+    padding-left: 12px;
+    margin-bottom: 2px;
+}
+.subtask-add-btn {
+    margin: 2px 0 4px 34px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 2px 0;
+}
+.subtask-add-btn:hover { color: var(--forest); }
+.subtask-form {
+    margin: 4px 0 8px 34px;
+    padding: 12px;
+    background: var(--cream);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.subtask-form input, .subtask-form select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+.subtask-form-actions { display: flex; gap: 8px; }
+
+/* Task 7b — event link badge on announcements & discussions */
+.event-link-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 4px 10px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: rgba(74, 124, 89, 0.08);
+    color: var(--forest-dark);
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    width: fit-content;
+}
+.event-link-badge:hover { background: rgba(74, 124, 89, 0.16); }
+.event-link-icon { font-size: 0.85rem; line-height: 1; }

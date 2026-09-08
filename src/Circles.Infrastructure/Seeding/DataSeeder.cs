@@ -263,6 +263,7 @@ public static class DataSeeder
             CircleId    = p2016Id,
             OriginalPosterPersonId = erikId,
             Title       = "Matchider för kommande säsong",
+            EventId     = Id("event:seriematch"),   // 7b: linked to the demo match
             CreatedAt   = Now.AddDays(10)
         };
         var post1 = new Post
@@ -307,18 +308,45 @@ public static class DataSeeder
         db.Polls.Add(poll);
         db.Votes.AddRange(vote1, vote2);
 
-        // ── Demo Task in P2016 ──────────────────────────────────────────────
+        // ── Demo Task in P2016 (with assignee + sub-tasks) ─────────────────
+        // 7c: a top-level task assigned to Erik, broken into two sub-tasks that
+        // are each assigned to a different circle member (one level of nesting).
         var circlesTask = new CirclesTask
         {
-            Id                = Id("task:boka-plan"),
-            CircleId          = p2016Id,
-            CreatedByPersonId = erikId,
-            Title             = "Boka plan inför säsongsstart",
-            Description       = "Kontakta idrottshallen och boka tider för träning v.15–v.20.",
-            DueDate           = Now.AddDays(30),
-            CreatedAt         = Now.AddDays(2)
+            Id                 = Id("task:boka-plan"),
+            CircleId           = p2016Id,
+            CreatedByPersonId  = erikId,
+            AssignedToPersonId = erikId,
+            Title              = "Boka plan inför säsongsstart",
+            Description        = "Kontakta idrottshallen och boka tider för träning v.15–v.20.",
+            DueDate            = Now.AddDays(30),
+            CreatedAt          = Now.AddDays(2)
         };
-        db.Tasks.Add(circlesTask);
+        var subTask1 = new CirclesTask
+        {
+            Id                 = Id("task:boka-plan-sub1"),
+            CircleId           = p2016Id,
+            CreatedByPersonId  = erikId,
+            ParentTaskId       = circlesTask.Id,
+            AssignedToPersonId = mariaId,
+            Title              = "Ring idrottshallen och kolla lediga tider",
+            Description        = "Hör efter vilka kvällar plan 3 är ledig under v.15–v.20.",
+            DueDate            = Now.AddDays(20),
+            CreatedAt          = Now.AddDays(2)
+        };
+        var subTask2 = new CirclesTask
+        {
+            Id                 = Id("task:boka-plan-sub2"),
+            CircleId           = p2016Id,
+            CreatedByPersonId  = erikId,
+            ParentTaskId       = circlesTask.Id,
+            AssignedToPersonId = johanId,
+            Title              = "Meddela laget de bokade tiderna",
+            Description        = "Lägg ut ett meddelande när tiderna är spikade.",
+            DueDate            = Now.AddDays(28),
+            CreatedAt          = Now.AddDays(2)
+        };
+        db.Tasks.AddRange(circlesTask, subTask1, subTask2);
 
 
         // ── Demo Announcements in P2016 ────────────────────────────────────
@@ -329,6 +357,7 @@ public static class DataSeeder
             CreatedByPersonId = erikId,
             Title             = "Säkerhetsmöte inför säsongsstart",
             Body              = "Hej alla i P2016! Vi har ett obligatoriskt säkerhetsmöte torsdagen den 20 mars kl. 18:00 i klubbstugan. Alla spelare och föräldrar är välkomna.",
+            EventId           = Id("event:seriematch"),   // 7b: linked to the demo match
             CreatedAt         = Now.AddDays(1)
         };
         var ann2 = new Announcement

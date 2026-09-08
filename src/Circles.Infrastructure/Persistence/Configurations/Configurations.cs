@@ -163,8 +163,18 @@ public class DiscussionConfiguration : IEntityTypeConfiguration<Discussion>
             .WithMany()
             .HasForeignKey(d => d.OriginalPosterPersonId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Optional link to a calendar event (Task 7b). Deleting the event just
+        // clears the link — the discussion is preserved. ClientSetNull (DB emits
+        // ON DELETE NO ACTION) avoids SQL Server's "multiple cascade paths"
+        // error; EF still nulls the link for tracked entities on delete.
+        b.HasOne(d => d.Event)
+            .WithMany(e => e.Discussions)
+            .HasForeignKey(d => d.EventId)
+            .OnDelete(DeleteBehavior.ClientSetNull);
         
         b.HasIndex(d => d.CircleId);
+        b.HasIndex(d => d.EventId);
     }
 }
 
@@ -264,8 +274,25 @@ public class CirclesTaskConfiguration : IEntityTypeConfiguration<CirclesTask>
             .WithMany()
             .HasForeignKey(t => t.CreatedByPersonId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Task 7c — hierarchy: self-referencing parent/child. Deleting a parent
+        // deletes its sub-tasks. Restrict on the DB side to avoid SQL Server
+        // multiple-cascade-path errors; children are cascaded in app code.
+        b.HasOne(t => t.ParentTask)
+            .WithMany(t => t.SubTasks)
+            .HasForeignKey(t => t.ParentTaskId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Task 7c — assignment: the person responsible. Clearing the person
+        // (or an unassigned task) leaves AssignedToPersonId null.
+        b.HasOne(t => t.AssignedTo)
+            .WithMany()
+            .HasForeignKey(t => t.AssignedToPersonId)
+            .OnDelete(DeleteBehavior.Restrict);
         
         b.HasIndex(t => t.CircleId);
         b.HasIndex(t => new { t.CircleId, t.CompletedAt });
+        b.HasIndex(t => t.ParentTaskId);
+        b.HasIndex(t => t.AssignedToPersonId);
     }
 }

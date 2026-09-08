@@ -4,6 +4,7 @@
 @rendermode InteractiveServer
 @inject CirclesQueryService Circles
 @inject ContentService Content
+@inject EventService Events
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 
@@ -54,6 +55,19 @@ else
                     <label>Meddelande</label>
                     <textarea @bind="_newBody" rows="4" placeholder="Skriv ditt meddelande…" maxlength="5000"></textarea>
                 </div>
+                @if (_events.Count > 0)
+                {
+                    <div class="field">
+                        <label>Koppla till händelse (valfritt)</label>
+                        <select @bind="_newEventId">
+                            <option value="">— Ingen händelse —</option>
+                            @foreach (var ev in _events)
+                            {
+                                <option value="@ev.Id">@EventOptionLabel(ev)</option>
+                            }
+                        </select>
+                    </div>
+                }
                 @if (_formError is not null)
                 {
                     <p class="field-error">@_formError</p>
@@ -87,6 +101,10 @@ else
                             <span class="thread-date">@d.CreatedAt.ToString("d MMM")</span>
                         </div>
                         <p class="thread-title">@d.Title</p>
+                        @if (d.EventTitle is not null)
+                        {
+                            <span class="event-link-badge"><span class="event-link-icon">📅</span>@d.EventTitle</span>
+                        }
                         <span class="thread-count">@d.PostCount svar</span>
                     </li>
                 }

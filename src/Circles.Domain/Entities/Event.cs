@@ -39,4 +39,9 @@ public class Event
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    // Content that has been linked to this event (Task 7b). Optional links —
+    // announcements and discussions may reference an event they concern.
+    public ICollection<Announcement> Announcements { get; set; } = new List<Announcement>();
+    public ICollection<Discussion> Discussions { get; set; } = new List<Discussion>();
 }

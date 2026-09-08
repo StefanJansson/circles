@@ -8,6 +8,84 @@
 
 <PageTitle>Uppgifter · Circles</PageTitle>
 
+@* ── Task row + its sub-tasks (defined first so it can be used below) ───────── *@
+@{
+    RenderFragment<CirclesTaskDto> RenderTask = task =>@<li class="task-item">
+        <div class="task-row @(task.IsCompleted ? "task-done" : "")">
+            <span class="task-checkbox @(task.IsCompleted ? "task-checked" : "")"
+                  @onclick="() => ToggleTask(task.Id)">@(task.IsCompleted ? "✓" : "")</span>
+            <div class="task-body" @onclick="() => ToggleTask(task.Id)">
+                <span class="task-title">@task.Title</span>
+                <span class="task-sub-meta">
+                    @if (task.DueDate.HasValue)
+                    {
+                        <span class="task-due">Förfaller @task.DueDate.Value.ToString("d MMM")</span>
+                    }
+                    @if (task.AssignedToName is not null)
+                    {
+                        <span class="task-assignee">👤 @task.AssignedToName</span>
+                    }
+                </span>
+            </div>
+            <span class="task-creator">@task.CreatedByName</span>
+        </div>
+
+        @{
+            var subs = SubTasksOf(task.Id).ToList();
+        }
+        @if (subs.Count > 0)
+        {
+            <ul class="subtask-list">
+                @foreach (var s in subs)
+                {
+                    <li class="task-row task-subrow @(s.IsCompleted ? "task-done" : "")">
+                        <span class="task-checkbox @(s.IsCompleted ? "task-checked" : "")"
+                              @onclick="() => ToggleTask(s.Id)">@(s.IsCompleted ? "✓" : "")</span>
+                        <div class="task-body" @onclick="() => ToggleTask(s.Id)">
+                            <span class="task-title">@s.Title</span>
+                            @if (s.AssignedToName is not null)
+                            {
+                                <span class="task-assignee">👤 @s.AssignedToName</span>
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (!task.IsCompleted)
+        {
+            @if (_subtaskParentId == task.Id)
+            {
+                <div class="subtask-form">
+                    <input type="text" @bind="_subtaskTitle" placeholder="Deluppgift…" maxlength="200" />
+                    <select @bind="_subtaskAssignee">
+                        <option value="">— Ingen ansvarig —</option>
+                        @foreach (var m in _members)
+                        {
+                            <option value="@m.PersonId">@m.FullName</option>
+                        }
+                    </select>
+                    @if (_subtaskError is not null)
+                    {
+                        <p class="field-error">@_subtaskError</p>
+                    }
+                    <div class="subtask-form-actions">
+                        <button class="btn btn-primary btn-sm" @onclick="() => CreateSubtask(task.Id)" disabled="@_subtaskSaving">
+                            @(_subtaskSaving ? "Sparar…" : "Lägg till")
+                        </button>
+                        <button class="btn btn-outline btn-sm" @onclick="() => ToggleSubtaskForm(task.Id)">Avbryt</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <button class="subtask-add-btn" @onclick="() => ToggleSubtaskForm(task.Id)">+ Deluppgift</button>
+            }
+        }
+    </li>;
+}
+
 <header class="page-header">
     <a class="back-link" href="/cirklar/@Id">← Tillbaka</a>
 </header>
@@ -57,6 +135,16 @@ else
                     <label>Förfallodatum (valfritt)</label>
                     <input type="date" @bind="_newDueDate" />
                 </div>
+                <div class="field">
+                    <label>Ansvarig (valfritt)</label>
+                    <select @bind="_newAssignee">
+                        <option value="">— Ingen —</option>
+                        @foreach (var m in _members)
+                        {
+                            <option value="@m.PersonId">@m.FullName</option>
+                        }
+                    </select>
+                </div>
                 @if (_formError is not null)
                 {
                     <p class="field-error">@_formError</p>
@@ -71,8 +159,9 @@ else
     <!-- Lista -->
     <section class="content-section">
         @{
-            var pending   = _tasks?.Where(t => !t.IsCompleted).ToList() ?? new();
-            var completed = _tasks?.Where(t =>  t.IsCompleted).ToList() ?? new();
+            var topLevel  = _tasks?.Where(t => t.ParentTaskId is null).ToList() ?? new();
+            var pending   = topLevel.Where(t => !t.IsCompleted).ToList();
+            var completed = topLevel.Where(t =>  t.IsCompleted).ToList();
         }
 
         <h2 class="section-label">Öppna (@pending.Count)</h2>
@@ -89,17 +178,7 @@ else
             <ul class="task-list">
                 @foreach (var t in pending)
                 {
-                    <li class="task-row" @onclick="() => ToggleTask(t.Id)">
-                        <span class="task-checkbox"></span>
-                        <div class="task-body">
-                            <span class="task-title">@t.Title</span>
-                            @if (t.DueDate.HasValue)
-                            {
-                                <span class="task-due">Förfaller @t.DueDate.Value.ToString("d MMM")</span>
-                            }
-                        </div>
-                        <span class="task-creator">@t.CreatedByName</span>
-                    </li>
+                    @RenderTask(t)
                 }
             </ul>
         }
@@ -110,13 +189,7 @@ else
             <ul class="task-list task-list-done">
                 @foreach (var t in completed)
                 {
-                    <li class="task-row task-done" @onclick="() => ToggleTask(t.Id)">
-                        <span class="task-checkbox task-checked">✓</span>
-                        <div class="task-body">
-                            <span class="task-title">@t.Title</span>
-                        </div>
-                        <span class="task-creator">@t.CreatedByName</span>
-                    </li>
+                    @RenderTask(t)
                 }
             </ul>
         }
