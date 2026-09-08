@@ -30,6 +30,7 @@ public class UserAccountConfiguration : IEntityTypeConfiguration<UserAccount>
         b.Property(u => u.Email).HasMaxLength(320).IsRequired();
         b.HasIndex(u => u.Email).IsUnique();
         b.Property(u => u.PasswordHash).IsRequired();
+        b.Property(u => u.IsSiteAdmin).HasDefaultValue(false);
     }
 }
 

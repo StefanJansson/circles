@@ -23,6 +23,15 @@ public record OrganizationDto(
     string Name,
     string Slug);
 
+/// <summary>Organization overview for the site administrator dashboard.</summary>
+public record SiteOrganizationDto(
+    Guid Id,
+    string Name,
+    string Slug,
+    int CircleCount,
+    int MemberCount,
+    DateTime CreatedAt);
+
 public record CircleNodeDto(
     Guid Id,
     string Name,

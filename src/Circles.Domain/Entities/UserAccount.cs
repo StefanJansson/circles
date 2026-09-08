@@ -16,6 +16,12 @@ public class UserAccount
 
     public string PasswordHash { get; set; } = string.Empty;
 
+    // Site administrator: a platform-level identity that can see and manage every
+    // organization (e.g. the operator of the whole Circles site). This is NOT a
+    // club role — it lives above organizations. Ordinary club admins have an
+    // Administrator membership in their organization's root circle instead.
+    public bool IsSiteAdmin { get; set; }
+
     // The person this account authenticates as. Nullable because an account
     // could, in principle, be provisioned before being linked to a person.
     public Guid? PersonId { get; set; }

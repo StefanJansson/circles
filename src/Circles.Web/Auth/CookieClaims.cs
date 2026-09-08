@@ -11,6 +11,7 @@ namespace Circles.Web.Auth;
 public static class CookieClaims
 {
     public const string PersonIdClaim = "pid";
+    public const string SiteAdminClaim = "siteadmin";
 
     public static ClaimsPrincipal Build(UserAccount account)
     {
@@ -26,6 +27,9 @@ public static class CookieClaims
 
         if (account.PersonId is { } pid)
             claims.Add(new Claim(PersonIdClaim, pid.ToString()));
+
+        if (account.IsSiteAdmin)
+            claims.Add(new Claim(SiteAdminClaim, "true"));
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         return new ClaimsPrincipal(identity);
@@ -46,6 +50,10 @@ public static class ClaimsPrincipalExtensions
         var raw = user.FindFirstValue(CookieClaims.PersonIdClaim);
         return Guid.TryParse(raw, out var id) ? id : null;
     }
+
+    /// <summary>True when the signed-in account is a platform site administrator.</summary>
+    public static bool IsSiteAdmin(this ClaimsPrincipal user) =>
+        user.FindFirstValue(CookieClaims.SiteAdminClaim) == "true";
 
     public static string? GetFullName(this ClaimsPrincipal user) =>
         user.FindFirstValue(ClaimTypes.Name);

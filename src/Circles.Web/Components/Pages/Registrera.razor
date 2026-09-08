@@ -1,0 +1,157 @@
+@page "/registrera"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [AllowAnonymous]
+@inherits RegistreraBase
+
+<div class="auth-page">
+    <div class="auth-brand">
+        <div class="brand-mark">C</div>
+        <h1 class="brand-title">Circles</h1>
+        <p class="brand-tagline">Skapa en förening</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <p class="alert alert-error" role="alert">@Error</p>
+    }
+
+    @* ---- Step indicator ---- *@
+    <ol class="wizard-steps" aria-hidden="true">
+        <li class="@(Step >= 1 ? "done" : "")">Förening</li>
+        <li class="@(Step >= 2 ? "done" : "")">Administratör</li>
+        <li class="@(Step >= 3 ? "done" : "")">Lag</li>
+        <li class="@(Step >= 4 ? "done" : "")">Klart</li>
+    </ol>
+
+    @if (StepError is not null)
+    {
+        <p class="alert alert-error" role="alert">@StepError</p>
+    }
+
+    @* ---- Step 1: organization ---- *@
+    @if (Step == 1)
+    {
+        <div class="wizard-card">
+            <h2 class="wizard-title">Vad heter er förening?</h2>
+            <div class="field">
+                <label for="orgName">Föreningens namn</label>
+                <input id="orgName" @bind="OrgName" @bind:event="oninput" placeholder="t.ex. Danmarks IF" />
+            </div>
+            <div class="wizard-actions">
+                <button class="btn btn-primary" @onclick="Next">Nästa</button>
+            </div>
+        </div>
+    }
+
+    @* ---- Step 2: administrator ---- *@
+    else if (Step == 2)
+    {
+        <div class="wizard-card">
+            <h2 class="wizard-title">Ditt administratörskonto</h2>
+            <div class="field-row">
+                <div class="field">
+                    <label for="firstName">Förnamn</label>
+                    <input id="firstName" @bind="AdminFirstName" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="lastName">Efternamn</label>
+                    <input id="lastName" @bind="AdminLastName" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="field">
+                <label for="email">E-post</label>
+                <input id="email" type="email" @bind="Email" @bind:event="oninput" placeholder="namn@@exempel.se" />
+            </div>
+            <div class="field">
+                <label for="password">Lösenord (minst 8 tecken)</label>
+                <input id="password" type="password" @bind="Password" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="passwordConfirm">Bekräfta lösenord</label>
+                <input id="passwordConfirm" type="password" @bind="PasswordConfirm" @bind:event="oninput" />
+            </div>
+            <div class="wizard-actions">
+                <button class="btn btn-outline" @onclick="Back">Tillbaka</button>
+                <button class="btn btn-primary" @onclick="Next">Nästa</button>
+            </div>
+        </div>
+    }
+
+    @* ---- Step 3: teams ---- *@
+    else if (Step == 3)
+    {
+        <div class="wizard-card">
+            <h2 class="wizard-title">Lägg till lag</h2>
+            <p class="wizard-help">Lägg till era lag nu, eller hoppa över och gör det senare i admin.</p>
+
+            <div class="field-row">
+                <div class="field" style="flex:1">
+                    <label for="newTeam">Lagets namn</label>
+                    <input id="newTeam" @bind="NewTeam" @bind:event="oninput"
+                           @onkeydown="@(e => { if (e.Key == "Enter") AddTeam(); })"
+                           placeholder="t.ex. P2011" />
+                </div>
+                <button class="btn btn-outline wizard-add" @onclick="AddTeam">Lägg till</button>
+            </div>
+
+            @if (Teams.Count > 0)
+            {
+                <ul class="team-list">
+                    @foreach (var team in Teams)
+                    {
+                        <li>
+                            <span>@team</span>
+                            <button class="team-remove" @onclick="() => RemoveTeam(team)" aria-label="Ta bort @team">✕</button>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="empty-hint">Inga lag tillagda ännu.</p>
+            }
+
+            <div class="wizard-actions">
+                <button class="btn btn-outline" @onclick="Back">Tillbaka</button>
+                <button class="btn btn-primary" @onclick="Next">Nästa</button>
+            </div>
+        </div>
+    }
+
+    @* ---- Step 4: review + submit ---- *@
+    else if (Step == 4)
+    {
+        <div class="wizard-card">
+            <h2 class="wizard-title">Granska och skapa</h2>
+
+            <dl class="review">
+                <dt>Förening</dt>
+                <dd>@OrgName</dd>
+                <dt>Administratör</dt>
+                <dd>@AdminFirstName @AdminLastName (@Email)</dd>
+                <dt>Lag</dt>
+                <dd>@(Teams.Count > 0 ? string.Join(", ", Teams) : "Inga (läggs till senare)")</dd>
+            </dl>
+
+            @* Real form-post so the server can create everything and write the auth cookie. *@
+            <form method="post" action="/auth/register-organization">
+                <AntiforgeryToken />
+                <input type="hidden" name="orgName" value="@OrgName" />
+                <input type="hidden" name="adminFirstName" value="@AdminFirstName" />
+                <input type="hidden" name="adminLastName" value="@AdminLastName" />
+                <input type="hidden" name="email" value="@Email" />
+                <input type="hidden" name="password" value="@Password" />
+                <input type="hidden" name="teams" value="@TeamsSerialized" />
+                <div class="wizard-actions">
+                    <button type="button" class="btn btn-outline" @onclick="Back">Tillbaka</button>
+                    <button type="submit" class="btn btn-primary">Skapa förening</button>
+                </div>
+            </form>
+        </div>
+    }
+
+    <p class="auth-alt">
+        Har du redan ett konto? <a href="/login">Logga in</a>
+    </p>
+</div>

@@ -1,0 +1,76 @@
+@page "/site"
+@using Circles.Application.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inherits SiteBase
+
+<PageTitle>Webbplats · Circles</PageTitle>
+
+<header class="page-header">
+    <a class="back-link" href="/hem">← Hem</a>
+    <h1>Webbplatsöversikt</h1>
+    <p class="eyebrow">Alla föreningar på plattformen</p>
+</header>
+
+@if (IsLoading)
+{
+    <div class="center-pad"><div class="spinner"></div></div>
+}
+else if (!IsSiteAdmin)
+{
+    <div class="empty-state">
+        <p class="empty-title">Du saknar behörighet</p>
+        <p class="empty-help">Endast webbplatsadministratören kan se den här sidan.</p>
+    </div>
+}
+else
+{
+    <section class="admin-section">
+        <div class="site-stats">
+            <div class="site-stat">
+                <span class="site-stat-num">@Organizations.Count</span>
+                <span class="site-stat-label">Föreningar</span>
+            </div>
+            <div class="site-stat">
+                <span class="site-stat-num">@TotalCircles</span>
+                <span class="site-stat-label">Cirklar</span>
+            </div>
+            <div class="site-stat">
+                <span class="site-stat-num">@TotalMembers</span>
+                <span class="site-stat-label">Medlemmar</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <h2 class="compose-title">Föreningar</h2>
+
+        @if (Organizations.Count == 0)
+        {
+            <div class="empty-state">
+                <p class="empty-title">Inga föreningar ännu</p>
+                <p class="empty-help">När någon registrerar en förening dyker den upp här.</p>
+            </div>
+        }
+        else
+        {
+            <ul class="site-org-list">
+                @foreach (var org in Organizations)
+                {
+                    <li class="site-org">
+                        <div class="site-org-main">
+                            <span class="site-org-name">@org.Name</span>
+                            <span class="site-org-slug">/@org.Slug</span>
+                        </div>
+                        <div class="site-org-meta">
+                            <span>@org.CircleCount cirklar</span>
+                            <span>@org.MemberCount medlemmar</span>
+                            <span>Skapad @org.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}

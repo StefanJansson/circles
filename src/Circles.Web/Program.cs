@@ -147,6 +147,8 @@ builder.Services.AddScoped<ContentService>();
 builder.Services.AddScoped<AnnouncementService>();
 builder.Services.AddScoped<ModuleService>();
 builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<SiteAdminService>();
+builder.Services.AddScoped<OnboardingService>();
 builder.Services.AddScoped<EventService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<NotificationService>();
@@ -204,7 +206,44 @@ app.MapPost("/auth/login", async (
         CookieClaims.Build(full!),
         new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = true });
 
+    // Site admins land on the platform overview; ordinary users on their home.
+    if (full!.IsSiteAdmin && string.IsNullOrWhiteSpace(returnUrl))
+        return Results.LocalRedirect("/site");
+
     return Results.LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/hem" : returnUrl);
+});
+
+// ---- Organization registration wizard --------------------------------------
+// Creates a new organization, its admin account and its teams, then signs the
+// new admin in. Posted from the final step of the /registrera wizard.
+app.MapPost("/auth/register-organization", async (
+    HttpContext http,
+    [FromForm] string orgName,
+    [FromForm] string adminFirstName,
+    [FromForm] string adminLastName,
+    [FromForm] string email,
+    [FromForm] string password,
+    [FromForm] string? teams,
+    OnboardingService onboarding,
+    AuthService auth) =>
+{
+    var teamNames = (teams ?? "")
+        .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+
+    var result = await onboarding.RegisterOrganizationAsync(new OnboardingRequest(
+        orgName, adminFirstName, adminLastName, email, password, teamNames));
+
+    if (!result.Succeeded || result.AccountId is not { } accountId)
+        return Results.Redirect($"/registrera?error={Uri.EscapeDataString(result.Error ?? "Registreringen misslyckades.")}");
+
+    var full = await auth.GetAccountAsync(accountId);
+    await http.SignInAsync(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        CookieClaims.Build(full!),
+        new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = true });
+
+    return Results.LocalRedirect("/admin");
 });
 
 app.MapPost("/auth/magic-link", async (

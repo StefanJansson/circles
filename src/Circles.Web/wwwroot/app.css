@@ -1030,3 +1030,152 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-social:hover { background: var(--cream, #FAFAF8); border-color: #d9d6cf; }
 .btn-social svg { flex: 0 0 auto; }
+
+/* =========================================================
+   Task 8 — Registration wizard & site overview
+   ========================================================= */
+
+/* ---- "Already have an account / new here" link ---------- */
+.auth-alt {
+    text-align: center;
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin-top: 28px;
+}
+.auth-alt a { color: var(--forest-dark); font-weight: 600; }
+
+/* ---- Wizard step indicator ----------------------------- */
+.wizard-steps {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 22px;
+    counter-reset: step;
+}
+.wizard-steps li {
+    flex: 1;
+    position: relative;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+    padding-top: 30px;
+}
+.wizard-steps li::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--hairline);
+    color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    z-index: 1;
+}
+.wizard-steps li::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: -50%;
+    width: 100%;
+    height: 1px;
+    background: var(--hairline);
+    z-index: 0;
+}
+.wizard-steps li:first-child::after { display: none; }
+.wizard-steps li.done { color: var(--forest-dark); font-weight: 600; }
+.wizard-steps li.done::before {
+    background: var(--forest);
+    border-color: var(--forest);
+    color: var(--cream);
+}
+.wizard-steps li.done::after { background: var(--forest); }
+
+/* ---- Wizard card --------------------------------------- */
+.wizard-card {
+    background: #fff;
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    padding: 20px;
+}
+.wizard-title { font-size: 1.1rem; margin: 0 0 16px; }
+.wizard-help { font-size: 0.85rem; color: var(--muted); margin: -8px 0 16px; }
+.wizard-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+.wizard-actions .btn { flex: 1; }
+.wizard-add { white-space: nowrap; align-self: flex-end; }
+
+.field-row { display: flex; gap: 12px; align-items: flex-start; }
+.field-row .field { flex: 1; }
+
+/* ---- Team chips list ----------------------------------- */
+.team-list { list-style: none; padding: 0; margin: 4px 0 0; }
+.team-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+.team-remove {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+.team-remove:hover { color: var(--danger); }
+.empty-hint { font-size: 0.85rem; color: var(--muted); margin: 4px 0 0; }
+
+/* ---- Review list --------------------------------------- */
+.review { margin: 0; }
+.review dt { font-size: 0.78rem; color: var(--muted); margin-top: 12px; }
+.review dt:first-child { margin-top: 0; }
+.review dd { margin: 2px 0 0; font-size: 0.95rem; font-weight: 500; }
+
+/* ---- Site overview ------------------------------------- */
+.site-stats {
+    display: flex;
+    gap: 12px;
+}
+.site-stat {
+    flex: 1;
+    background: #fff;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 16px 12px;
+    text-align: center;
+}
+.site-stat-num { display: block; font-size: 1.5rem; font-weight: 700; color: var(--forest-dark); }
+.site-stat-label { font-size: 0.76rem; color: var(--muted); }
+
+.site-org-list { list-style: none; padding: 0; margin: 0; }
+.site-org {
+    background: #fff;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+}
+.site-org-main { display: flex; align-items: baseline; gap: 8px; }
+.site-org-name { font-size: 1rem; font-weight: 600; }
+.site-org-slug { font-size: 0.82rem; color: var(--muted); }
+.site-org-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: var(--muted);
+}

@@ -74,6 +74,8 @@ builder.Services.AddScoped<ContentService>();
 builder.Services.AddScoped<AnnouncementService>();
 builder.Services.AddScoped<ModuleService>();
 builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<SiteAdminService>();
+builder.Services.AddScoped<OnboardingService>();
 builder.Services.AddScoped<EventService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<NotificationService>();
