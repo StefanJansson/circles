@@ -193,24 +193,59 @@ app.MapPost("/auth/login", async (
     [FromForm] string email,
     [FromForm] string password,
     [FromForm] string? returnUrl,
-    AuthService auth) =>
+    AuthService auth,
+    ILogger<Program> logger) =>
 {
-    var account = await auth.ValidateCredentialsAsync(email ?? "", password ?? "");
-    if (account is null)
-        return Results.Redirect($"/login?error=1&returnUrl={Uri.EscapeDataString(returnUrl ?? "/hem")}");
+    try
+    {
+        logger.LogInformation("POST /auth/login: email={Email}, password.Length={PwdLen}, returnUrl={ReturnUrl}",
+            email ?? "(null)", password?.Length ?? 0, returnUrl ?? "(null)");
 
-    // Reload with the linked person for name/pid claims.
-    var full = await auth.GetAccountAsync(account.Id);
-    await http.SignInAsync(
-        CookieAuthenticationDefaults.AuthenticationScheme,
-        CookieClaims.Build(full!),
-        new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = true });
+        var account = await auth.ValidateCredentialsAsync(email ?? "", password ?? "");
+        if (account is null)
+        {
+            logger.LogWarning("ValidateCredentialsAsync returned null for email={Email}", email ?? "(empty)");
+            return Results.Redirect($"/login?error=1&returnUrl={Uri.EscapeDataString(returnUrl ?? "/hem")}");
+        }
 
-    // Site admins land on the platform overview; ordinary users on their home.
-    if (full!.IsSiteAdmin && string.IsNullOrWhiteSpace(returnUrl))
-        return Results.LocalRedirect("/site");
+        logger.LogInformation("ValidateCredentialsAsync SUCCESS: accountId={AccountId}, IsSiteAdmin={IsSiteAdmin}",
+            account.Id, account.IsSiteAdmin);
 
-    return Results.LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/hem" : returnUrl);
+        // Reload with the linked person for name/pid claims.
+        var full = await auth.GetAccountAsync(account.Id);
+        if (full is null)
+        {
+            logger.LogError("GetAccountAsync returned null for accountId={AccountId} — should never happen!", account.Id);
+            return Results.Redirect($"/login?error=2&returnUrl={Uri.EscapeDataString(returnUrl ?? "/hem")}");
+        }
+
+        logger.LogInformation("GetAccountAsync SUCCESS: accountId={AccountId}, email={Email}, IsSiteAdmin={IsSiteAdmin}",
+            full.Id, full.Email, full.IsSiteAdmin);
+
+        await http.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            CookieClaims.Build(full),
+            new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = true });
+
+        logger.LogInformation("SignInAsync SUCCESS: accountId={AccountId}, auth scheme={Scheme}",
+            full.Id, CookieAuthenticationDefaults.AuthenticationScheme);
+
+        // Site admins land on the platform overview; ordinary users on their home.
+        if (full.IsSiteAdmin && string.IsNullOrWhiteSpace(returnUrl))
+        {
+            logger.LogInformation("Redirecting site admin to /site");
+            return Results.LocalRedirect("/site");
+        }
+
+        var target = string.IsNullOrWhiteSpace(returnUrl) ? "/hem" : returnUrl;
+        logger.LogInformation("Redirecting to {Target}", target);
+        return Results.LocalRedirect(target);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "EXCEPTION in /auth/login for email={Email}", email ?? "(null)");
+        return Results.Redirect($"/login?error=exception&returnUrl={Uri.EscapeDataString(returnUrl ?? "/hem")}");
+    }
 });
 
 // ---- TEMPORARY login diagnostic (remove after troubleshooting) --------------
