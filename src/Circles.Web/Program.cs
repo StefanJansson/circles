@@ -11,6 +11,7 @@ using Circles.Web.Auth;
 using Circles.Web.Components;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -106,6 +107,35 @@ if (msEnabled)
 
 // Surface which providers are enabled to the UI (Login page) via config lookup.
 builder.Services.AddSingleton(new ExternalAuthOptions(googleEnabled, msEnabled));
+
+// ---- Data Protection -------------------------------------------------------
+// The keys below encrypt BOTH the auth cookie ("circles.auth") AND the
+// antiforgery token in the login form. If they aren't persisted, they are
+// regenerated on every app restart and differ between scaled-out instances —
+// so a login page rendered before a restart / on another instance produces an
+// antiforgery token (and cookie) that the POST can't validate. The request is
+// then rejected by the antiforgery middleware BEFORE it reaches the /auth/login
+// handler, which looks exactly like "login silently fails" even though the
+// account and password are correct. Persisting the keys to Azure App Service's
+// /home share (stable across restarts and instances) fixes that.
+var dpKeysPath = builder.Configuration["DataProtection:KeyPath"]
+    ?? Environment.GetEnvironmentVariable("DATAPROTECTION_KEYPATH");
+if (string.IsNullOrWhiteSpace(dpKeysPath)
+    && !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID")))
+{
+    // On Azure App Service /home is persistent, shared storage across instances.
+    dpKeysPath = "/home/DataProtection-Keys";
+}
+
+var dataProtection = builder.Services.AddDataProtection()
+    // A fixed application name keeps the key "purpose" stable across restarts.
+    .SetApplicationName("Circles");
+
+if (!string.IsNullOrWhiteSpace(dpKeysPath))
+{
+    Directory.CreateDirectory(dpKeysPath);
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(dpKeysPath));
+}
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
