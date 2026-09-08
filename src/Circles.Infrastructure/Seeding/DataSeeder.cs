@@ -28,7 +28,7 @@ public static class DataSeeder
     public static async Task SeedAsync(CirclesDbContext db)
     {
         await SeedRolePermissionsAsync(db);
-        await SeedUppsalaIkAsync(db);
+        await SeedDanmarksIfAsync(db);
         await SeedModulesAsync(db);
         await SeedContentAsync(db);
     }
@@ -79,7 +79,7 @@ public static class DataSeeder
         await db.SaveChangesAsync();
     }
 
-    private static async Task SeedUppsalaIkAsync(CirclesDbContext db)
+    private static async Task SeedDanmarksIfAsync(CirclesDbContext db)
     {
         if (await db.Organizations.AnyAsync()) return;
 
@@ -107,26 +107,26 @@ public static class DataSeeder
             Type = CircleType.General,
             CreatedAt = Now
         };
-        var p2016 = new Circle
+        var p2011 = new Circle
         {
-            Id = Id("circle:p2016"),
+            Id = Id("circle:p2011"),
             OrganizationId = org.Id,
             ParentCircleId = root.Id,
-            Name = "P2016",
-            Slug = "p2016",
+            Name = "P2011",
+            Slug = "p2011",
             Type = CircleType.Team,
             // laget.se subscription — during the transition the team keeps its
             // schedule on laget.se and Circles simply syncs it in.
             LagetSeCalendarUrl = "https://cal.laget.se/U15-.ics",
             CreatedAt = Now
         };
-        var p2014 = new Circle
+        var p2013 = new Circle
         {
-            Id = Id("circle:p2014"),
+            Id = Id("circle:p2013"),
             OrganizationId = org.Id,
             ParentCircleId = root.Id,
-            Name = "P2014",
-            Slug = "p2014",
+            Name = "P2013",
+            Slug = "p2013",
             Type = CircleType.Team,
             CreatedAt = Now
         };
@@ -160,7 +160,7 @@ public static class DataSeeder
             Type = CircleType.General,
             CreatedAt = Now
         };
-        db.Circles.AddRange(root, p2016, p2014, f2016, board, officials);
+        db.Circles.AddRange(root, p2011, p2013, f2016, board, officials);
 
         // ---- People (some with accounts, some without) --------------------
         // Johan Andersson — has a UserAccount, guardian of Alexander.
@@ -193,9 +193,9 @@ public static class DataSeeder
 
         // ---- Memberships (time-based, never deleted) ----------------------
         db.Memberships.AddRange(
-            NewMembership("alexander-p2016", alexander.Id, p2016.Id, MembershipRole.Player),
+            NewMembership("alexander-p2016", alexander.Id, p2011.Id, MembershipRole.Player),
             NewMembership("lisa-f2016", lisa.Id, f2016.Id, MembershipRole.Player),
-            NewMembership("erik-p2016", erik.Id, p2016.Id, MembershipRole.Coach),
+            NewMembership("erik-p2016", erik.Id, p2011.Id, MembershipRole.Coach),
             NewMembership("maria-root", maria.Id, root.Id, MembershipRole.Administrator),
             NewMembership("johan-officials", johan.Id, officials.Id, MembershipRole.Member)
         );

@@ -15,7 +15,7 @@ as sports clubs and teams. This is an all-C# solution:
 Both projects share the `Circles.Domain`, `Circles.Application` and
 `Circles.Infrastructure` layers, so there is no duplicated model or DTO code.
 
-The first use case is **Uppsala IK**, a fictional Swedish sports club, which the
+The first use case is **Danmarks IF**, a fictional Swedish sports club, which the
 project seeds with realistic demo data.
 
 ---
@@ -281,7 +281,7 @@ is not sensitive, e.g., using managed identity with no credentials)
 dotnet run --project src/Circles.API
 ```
 
-On startup the API **applies EF Core migrations** and **seeds the Uppsala IK demo
+On startup the API **applies EF Core migrations** and **seeds the Danmarks IF demo
 data** automatically (both are idempotent). Swagger UI is available in the
 Development environment at `/swagger`.
 
@@ -306,16 +306,16 @@ migrate + seed on startup, so it can be started on its own. It listens on
 
 ---
 
-## Seed data (Uppsala IK)
+## Seed data (Danmarks IF)
 
-**Organization:** Uppsala IK
+**Organization:** Danmarks IF
 
 **Circles (hierarchy):**
 
 ```
-Uppsala IK (root)
-├── P2016        (Team)
-├── P2014        (Team)
+Danmarks IF (root)
+├── P2013        (Team)
+├── P2011        (Team)
 ├── F2016        (Team)
 ├── Styrelsen    (Board)
 └── Funktionärer (General / Officials)
@@ -344,7 +344,7 @@ Uppsala IK (root)
 | Alexander | P2016 | Player |
 | Lisa | F2016 | Player |
 | Erik | P2016 | Coach |
-| Maria | Uppsala IK (root) | Administrator |
+| Maria | Danmarks IF (root) | Administrator |
 | Johan | Funktionärer | Member |
 
 Johan has **no direct membership in P2016**; his access there is **derived** from
