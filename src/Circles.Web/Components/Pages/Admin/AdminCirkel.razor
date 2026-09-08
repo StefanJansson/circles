@@ -1,0 +1,135 @@
+@page "/admin/cirklar/{Id:guid}"
+@using Circles.Application.Services
+@using Circles.Domain.Enums
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inherits AdminCirkelBase
+
+<PageTitle>@(Circle?.Name ?? "Cirkel") · Administration</PageTitle>
+
+<header class="page-header">
+    <a class="back-link" href="/admin">← Administration</a>
+    @if (Circle is not null)
+    {
+        <h1>@Circle.Name</h1>
+        <p class="eyebrow">@Labels.Circle(Circle.Type) · @Circle.MemberCount medlemmar</p>
+    }
+</header>
+
+@if (IsLoading)
+{
+    <div class="center-pad"><div class="spinner"></div></div>
+}
+else if (!CanAccess || Circle is null)
+{
+    <div class="empty-state">
+        <p class="empty-title">Cirkeln kunde inte visas</p>
+        <p class="empty-help">Du saknar behörighet eller så finns inte cirkeln.</p>
+    </div>
+}
+else
+{
+    <div class="circle-tabs">
+        <button class="circle-tab @(ActiveTab == Tab.Members ? "circle-tab-active" : "")"
+                @onclick="() => ActiveTab = Tab.Members">
+            Medlemmar
+        </button>
+        <button class="circle-tab @(ActiveTab == Tab.Modules ? "circle-tab-active" : "")"
+                @onclick="() => ActiveTab = Tab.Modules">
+            Moduler
+        </button>
+    </div>
+
+    @if (ActiveTab == Tab.Members)
+    {
+        <section class="admin-section">
+            <div class="admin-card">
+                <h2 class="compose-title">Bjud in medlem</h2>
+                <div class="form-group">
+                    <label for="email">E-postadress</label>
+                    <input id="email" type="email" class="form-input"
+                           placeholder="namn@exempel.se" @bind="InviteEmail" />
+                </div>
+                <div class="form-group">
+                    <label for="role">Roll</label>
+                    <select id="role" class="form-input" @bind="InviteRole">
+                        @foreach (var r in Roles)
+                        {
+                            <option value="@r">@Labels.Role(r)</option>
+                        }
+                    </select>
+                </div>
+                @if (!string.IsNullOrEmpty(InviteMessage))
+                {
+                    <p class="@(InviteSuccess ? "form-success" : "form-error")">@InviteMessage</p>
+                }
+                <button class="btn-primary" @onclick="InviteMember" disabled="@IsInviting">
+                    @(IsInviting ? "Bjuder in..." : "Bjud in")
+                </button>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <h2 class="section-label">Medlemmar (@Members.Count)</h2>
+            @if (Members.Count == 0)
+            {
+                <div class="empty-state"><p class="empty-title">Inga medlemmar ännu</p></div>
+            }
+            else
+            {
+                <ul class="admin-member-list">
+                    @foreach (var m in Members)
+                    {
+                        <li class="admin-member-row">
+                            <div class="admin-member-main">
+                                <span class="admin-avatar">@Labels.Initials(m.FullName)</span>
+                                <span class="admin-member-name">@m.FullName</span>
+                            </div>
+                            <div class="admin-member-actions">
+                                <select class="form-input form-input-sm"
+                                        value="@m.Role"
+                                        @onchange="e => ChangeRole(m.MembershipId, e)">
+                                    @foreach (var r in Roles)
+                                    {
+                                        <option value="@r">@Labels.Role(r)</option>
+                                    }
+                                </select>
+                                <button class="btn-ghost btn-sm"
+                                        @onclick="() => EndMembership(m.MembershipId)">
+                                    Avsluta
+                                </button>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    }
+    else
+    {
+        <section class="admin-section">
+            <p class="admin-hint">
+                Moduler aktiveras per organisation och påverkar alla cirklar i organisationen.
+            </p>
+            <ul class="admin-module-list">
+                @foreach (var mod in Modules)
+                {
+                    <li class="admin-module-row">
+                        <div class="admin-module-info">
+                            <span class="admin-module-name">@Labels.Module(mod.Module)</span>
+                            <span class="admin-module-state">
+                                @(mod.IsEnabled ? "Aktiverad" : "Inaktiverad")
+                            </span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" checked="@mod.IsEnabled"
+                                   @onchange="() => ToggleModule(mod.Module)" />
+                            <span class="switch-slider"></span>
+                        </label>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+}

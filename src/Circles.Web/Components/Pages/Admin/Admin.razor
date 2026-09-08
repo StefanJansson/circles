@@ -1,0 +1,136 @@
+@page "/admin"
+@using Circles.Application.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inherits AdminBase
+
+<PageTitle>Administration · Circles</PageTitle>
+
+<header class="page-header">
+    <a class="back-link" href="/hem">← Hem</a>
+    <h1>Administration</h1>
+    <p class="eyebrow">Hantera cirklar, medlemmar och moduler</p>
+</header>
+
+@if (IsLoading)
+{
+    <div class="center-pad"><div class="spinner"></div></div>
+}
+else if (!CanAccess)
+{
+    <div class="empty-state">
+        <p class="empty-title">Du saknar administrationsbehörighet</p>
+        <p class="empty-help">Endast tränare, ledare och administratörer kan hantera cirklar.</p>
+    </div>
+}
+else
+{
+    <section class="admin-section">
+        <div class="admin-card">
+            <h2 class="compose-title">Ny cirkel</h2>
+
+            @if (Organizations.Count > 1)
+            {
+                <div class="form-group">
+                    <label for="org">Organisation</label>
+                    <select id="org" class="form-input" @bind="NewOrgId">
+                        @foreach (var o in Organizations)
+                        {
+                            <option value="@o.Id">@o.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="form-group">
+                <label for="name">Namn</label>
+                <input id="name" type="text" class="form-input"
+                       placeholder="T.ex. P2015" @bind="NewName" maxlength="300" />
+            </div>
+
+            <div class="form-group">
+                <label for="type">Typ</label>
+                <select id="type" class="form-input" @bind="NewType">
+                    @foreach (var t in CircleTypes)
+                    {
+                        <option value="@t">@Labels.Circle(t)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="desc">Beskrivning (valfritt)</label>
+                <textarea id="desc" class="form-textarea" rows="2"
+                          placeholder="Kort beskrivning..." @bind="NewDescription"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="parent">Överordnad cirkel (valfritt)</label>
+                <select id="parent" class="form-input" @bind="NewParentId">
+                    <option value="">— Ingen —</option>
+                    @foreach (var c in CirclesForOrg(NewOrgId))
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+
+            @if (!string.IsNullOrEmpty(CreateError))
+            {
+                <p class="form-error">@CreateError</p>
+            }
+            <button class="btn-primary" @onclick="CreateCircle" disabled="@IsCreating">
+                @(IsCreating ? "Skapar..." : "Skapa cirkel")
+            </button>
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <h2 class="section-label">Aktiva cirklar (@ActiveCircles.Count)</h2>
+        @if (ActiveCircles.Count == 0)
+        {
+            <div class="empty-state"><p class="empty-title">Inga aktiva cirklar</p></div>
+        }
+        else
+        {
+            <ul class="admin-circle-list">
+                @foreach (var c in ActiveCircles)
+                {
+                    <li class="admin-circle-row">
+                        <a class="admin-circle-main" href="/admin/cirklar/@c.Id">
+                            <span class="admin-circle-name">@c.Name</span>
+                            <span class="admin-circle-meta">
+                                @Labels.Circle(c.Type) · @c.MemberCount medlemmar
+                            </span>
+                        </a>
+                        <button class="btn-ghost btn-sm" @onclick="() => ArchiveCircle(c.Id, true)">
+                            Arkivera
+                        </button>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    @if (ArchivedCircles.Count > 0)
+    {
+        <section class="admin-section">
+            <h2 class="section-label">Arkiverade (@ArchivedCircles.Count)</h2>
+            <ul class="admin-circle-list">
+                @foreach (var c in ArchivedCircles)
+                {
+                    <li class="admin-circle-row admin-circle-archived">
+                        <div class="admin-circle-main">
+                            <span class="admin-circle-name">@c.Name</span>
+                            <span class="admin-circle-meta">@Labels.Circle(c.Type) · arkiverad</span>
+                        </div>
+                        <button class="btn-ghost btn-sm" @onclick="() => ArchiveCircle(c.Id, false)">
+                            Återställ
+                        </button>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+}

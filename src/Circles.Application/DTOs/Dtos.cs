@@ -117,3 +117,29 @@ public record CirclesTaskDto(
     Guid? ParentTaskId,
     Guid? AssignedToPersonId,
     string? AssignedToName);
+
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+/// <summary>A circle as shown in the admin overview (flat, with member count).</summary>
+public record AdminCircleDto(
+    Guid Id,
+    Guid OrganizationId,
+    string Name,
+    string Slug,
+    CircleType Type,
+    string? Description,
+    Guid? ParentCircleId,
+    int MemberCount,
+    bool IsArchived);
+
+/// <summary>The enabled/disabled state of one feature module for an organization.</summary>
+public record ModuleStatusDto(
+    ModuleType Module,
+    bool IsEnabled);
+
+/// <summary>Result of inviting a person to a circle by e-mail.</summary>
+public record InviteResultDto(
+    bool Success,
+    string Message,
+    MemberDto? Member);

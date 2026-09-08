@@ -77,6 +77,8 @@ public class CircleConfiguration : IEntityTypeConfiguration<Circle>
         b.Property(c => c.Name).HasMaxLength(300).IsRequired();
         b.Property(c => c.Slug).HasMaxLength(120).IsRequired();
         b.Property(c => c.Type).HasConversion<string>().HasMaxLength(50);
+        b.Property(c => c.Description).HasMaxLength(1000);
+        b.Property(c => c.IsArchived).HasDefaultValue(false);
         b.Property(c => c.LagetSeCalendarUrl).HasMaxLength(500);
 
         b.HasOne(c => c.Organization)

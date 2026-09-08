@@ -28,6 +28,17 @@ public static class Labels
         _ => role.ToString(),
     };
 
+    public static string Module(ModuleType module) => module switch
+    {
+        ModuleType.Announcements => "Meddelanden",
+        ModuleType.Discussions => "Diskussioner",
+        ModuleType.Polls => "Omröstningar",
+        ModuleType.Tasks => "Uppgifter",
+        ModuleType.Events => "Händelser",
+        ModuleType.Attendance => "Närvaro",
+        _ => module.ToString(),
+    };
+
     /// <summary>Direct vs derived (guardian) access badge text.</summary>
     public static string Access(string accessKind) => accessKind switch
     {

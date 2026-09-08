@@ -46,11 +46,28 @@ builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 
 // ---- Data + application services -------------------------------------------
-// Same connection-string convention as the API: configuration first, with a
-// local SQL Server fallback so the prototype runs out of the box. In Azure,
-// prefer a passwordless connection using a managed identity.
-var connectionString = builder.Configuration.GetConnectionString("Circles")
-    ?? "Server=localhost,1433;Database=circles;User Id=sa;Password=Circles_Str0ng!Pass;TrustServerCertificate=True;Encrypt=True";
+// EF Core / Azure SQL (SQL Server). Connection string is resolved in priority
+// order:
+//   1. ConnectionStrings:Circles   (appsettings / ConnectionStrings__Circles env var)
+//   2. AZURE_SQL_CONNECTIONSTRING   (the name Azure App Service sets by default)
+//   3. a local SQL Server fallback so the prototype runs out of the box.
+// Empty / whitespace values are treated as "not set". In Azure, prefer a
+// passwordless connection using a managed identity (Authentication=Active Directory Default).
+var connectionString = ResolveCirclesConnectionString(builder.Configuration);
+
+static string ResolveCirclesConnectionString(IConfiguration config)
+{
+    var configured = config.GetConnectionString("Circles");
+    if (!string.IsNullOrWhiteSpace(configured))
+        return configured;
+
+    var azure = config["AZURE_SQL_CONNECTIONSTRING"]
+                ?? Environment.GetEnvironmentVariable("AZURE_SQL_CONNECTIONSTRING");
+    if (!string.IsNullOrWhiteSpace(azure))
+        return azure;
+
+    return "Server=localhost,1433;Database=circles;User Id=sa;Password=Circles_Str0ng!Pass;TrustServerCertificate=True;Encrypt=True";
+}
 
 builder.Services.AddDbContext<CirclesDbContext>(options =>
     options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure()));
@@ -60,6 +77,7 @@ builder.Services.AddScoped<CirclesQueryService>();
 builder.Services.AddScoped<ContentService>();
 builder.Services.AddScoped<AnnouncementService>();
 builder.Services.AddScoped<ModuleService>();
+builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<EventService>();
 builder.Services.AddHttpClient<ICalendarSyncService, LagetSeCalendarSyncService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();

@@ -26,7 +26,14 @@ public class Circle
 
     public string Slug { get; set; } = string.Empty;
 
+    // Optional free-text description shown in the admin panel.
+    public string? Description { get; set; }
+
     public CircleType Type { get; set; }
+
+    // Archived circles are hidden from active listings but never deleted, so the
+    // circle (and all its history) persists. Archiving is reversible.
+    public bool IsArchived { get; set; }
 
     // Optional external calendar subscription (ICS/iCal URL) for this circle,
     // e.g. a team's laget.se feed. When set, events can be synced in from it.
