@@ -21,6 +21,7 @@ public class MeddelandenBase : ComponentBase
     protected List<AnnouncementDto> Announcements { get; private set; } = [];
     protected List<EventDto> Events { get; private set; } = [];
     protected bool IsLoading { get; private set; } = true;
+    protected bool HasError { get; private set; }
     protected bool CanManage { get; private set; }
     protected string NewTitle { get; set; } = string.Empty;
     protected string NewBody { get; set; } = string.Empty;
@@ -30,22 +31,36 @@ public class MeddelandenBase : ComponentBase
 
     private Guid _personId;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _personId = authState.User.GetPersonId() ?? Guid.Empty;
-
-        var perms = await AuthorizationService.GetPersonPermissionsInCircleAsync(_personId, CircleId);
-        CanManage = perms.Contains(PermissionType.PublishAnnouncements);
-
-        await LoadAnnouncementsAsync();
-
-        // Load events so a publisher can link an announcement to one.
-        // If the Events module isn't in use, this simply comes back empty.
-        if (CanManage)
+        IsLoading = true;
+        HasError = false;
+        try
         {
-            try { Events = await EventService.GetEventsAsync(_personId, CircleId); }
-            catch { Events = []; }
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _personId = authState.User.GetPersonId() ?? Guid.Empty;
+
+            var perms = await AuthorizationService.GetPersonPermissionsInCircleAsync(_personId, CircleId);
+            CanManage = perms.Contains(PermissionType.PublishAnnouncements);
+
+            await LoadAnnouncementsAsync();
+
+            // Load events so a publisher can link an announcement to one.
+            // If the Events module isn't in use, this simply comes back empty.
+            if (CanManage)
+            {
+                try { Events = await EventService.GetEventsAsync(_personId, CircleId); }
+                catch { Events = []; }
+            }
+        }
+        catch
+        {
+            HasError = true;
+            Announcements = [];
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 
@@ -65,6 +80,7 @@ public class MeddelandenBase : ComponentBase
     private async Task LoadAnnouncementsAsync()
     {
         IsLoading = true;
+        HasError = false;
         ErrorMessage = null;
         try
         {
@@ -74,6 +90,11 @@ public class MeddelandenBase : ComponentBase
         }
         catch (UnauthorizedAccessException)
         {
+            Announcements = [];
+        }
+        catch
+        {
+            HasError = true;
             Announcements = [];
         }
         finally

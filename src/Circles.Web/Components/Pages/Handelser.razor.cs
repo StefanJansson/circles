@@ -19,6 +19,7 @@ public class HandelserBase : ComponentBase
     protected string CircleName { get; private set; } = string.Empty;
     protected List<EventDto> Events { get; private set; } = [];
     protected bool IsLoading { get; private set; } = true;
+    protected bool HasError { get; private set; }
     protected bool CanManage { get; private set; }
     protected bool IsSyncing { get; private set; }
     protected string? SyncMessage { get; private set; }
@@ -26,31 +27,43 @@ public class HandelserBase : ComponentBase
 
     private Guid _personId;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _personId = authState.User.GetPersonId() ?? Guid.Empty;
-
-        var perms = await AuthorizationService.GetPersonPermissionsInCircleAsync(_personId, CircleId);
-        CanManage = perms.Contains(PermissionType.PublishAnnouncements)
-                 || perms.Contains(PermissionType.AdministerMembers);
-
+        IsLoading = true;
+        HasError = false;
         try
         {
-            var accessible = await CirclesQueryService.GetAccessibleCirclesAsync(_personId);
-            CircleName = accessible.FirstOrDefault(c => c.CircleId == CircleId)?.Name ?? "Cirkel";
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _personId = authState.User.GetPersonId() ?? Guid.Empty;
+
+            var perms = await AuthorizationService.GetPersonPermissionsInCircleAsync(_personId, CircleId);
+            CanManage = perms.Contains(PermissionType.PublishAnnouncements)
+                     || perms.Contains(PermissionType.AdministerMembers);
+
+            try
+            {
+                var accessible = await CirclesQueryService.GetAccessibleCirclesAsync(_personId);
+                CircleName = accessible.FirstOrDefault(c => c.CircleId == CircleId)?.Name ?? "Cirkel";
+            }
+            catch
+            {
+                CircleName = "Cirkel";
+            }
+
+            await LoadEventsAsync();
         }
         catch
         {
-            CircleName = "Cirkel";
+            HasError = true;
+            Events = [];
+            IsLoading = false;
         }
-
-        await LoadEventsAsync();
     }
 
     private async Task LoadEventsAsync()
     {
         IsLoading = true;
+        HasError = false;
         ErrorMessage = null;
         try
         {
@@ -60,6 +73,11 @@ public class HandelserBase : ComponentBase
         {
             Events = [];
             ErrorMessage = "Du saknar behörighet att se händelser i den här cirkeln.";
+        }
+        catch
+        {
+            Events = [];
+            HasError = true;
         }
         finally
         {

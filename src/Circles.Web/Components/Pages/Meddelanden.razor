@@ -55,11 +55,25 @@
 
     @if (IsLoading)
     {
-        <p class="loading-text">Laddar meddelanden…</p>
+        <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Laddar meddelanden…</p>
+        </div>
+    }
+    else if (HasError)
+    {
+        <div class="error-state">
+            <span class="error-icon">⚠️</span>
+            <p>Kunde inte ladda meddelanden. Försök igen senare.</p>
+        </div>
     }
     else if (Announcements.Count == 0)
     {
-        <p class="empty-text">Inga meddelanden ännu.</p>
+        <div class="empty-state">
+            <span class="empty-icon">📣</span>
+            <p class="empty-title">Inga meddelanden ännu</p>
+            <p class="empty-help">Var den första att dela något med gruppen!</p>
+        </div>
     }
     else
     {
@@ -70,7 +84,7 @@
                     <div class="announcement-header">
                         <h2 class="announcement-title">@ann.Title</h2>
                         <span class="announcement-meta">
-                            @ann.CreatedByName · @ann.CreatedAt.ToLocalTime().ToString("d MMM yyyy, HH:mm")
+                            @ann.CreatedByName · @DateHelper.DateTime(ann.CreatedAt)
                         </span>
                     </div>
                     <p class="announcement-body">@ann.Body</p>

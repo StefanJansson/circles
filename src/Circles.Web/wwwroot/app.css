@@ -886,3 +886,124 @@ a { color: inherit; text-decoration: none; }
 }
 .switch input:checked + .switch-slider { background: var(--forest); }
 .switch input:checked + .switch-slider::before { transform: translateX(20px); }
+
+
+/* =========================================================
+   Task 8c — Polish (loading, empty/error states, mobile, a11y)
+   ========================================================= */
+
+/* ---- Loading state (spinner + label) ------------------- */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--muted);
+}
+.loading-state p { margin: 0; font-size: 0.9rem; }
+.loading-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(74, 124, 89, 0.2);
+    border-top-color: var(--forest);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+/* ---- Empty state emoji/icon --------------------------- */
+.empty-icon {
+    font-size: 2rem;
+    line-height: 1;
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* ---- Error state card ---------------------------------- */
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    border: 1px solid rgba(180, 69, 31, 0.25);
+    background: rgba(180, 69, 31, 0.06);
+    border-radius: 16px;
+    padding: 28px 20px;
+    color: var(--danger);
+    margin-top: 16px;
+}
+.error-state .error-icon { font-size: 1.8rem; line-height: 1; }
+.error-state p { margin: 0; font-size: 0.9rem; }
+
+/* ---- Navigation badge (unread indicator, hidden by default) */
+.nav-item { position: relative; }
+.nav-badge {
+    position: absolute;
+    top: 8px;
+    right: calc(50% - 20px);
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    box-shadow: 0 0 0 2px var(--cream);
+}
+
+/* ---- Touch-target & interaction polish ----------------- */
+.btn,
+.btn-primary,
+.btn-ghost,
+.btn-outline,
+.btn-dark {
+    min-height: 44px;
+}
+.nav-item { min-height: 44px; cursor: pointer; }
+.thread-row,
+.task-row,
+.task-checkbox,
+.circle-card,
+.admin-circle-main,
+.poll-option,
+.subtask-add-btn,
+.circle-tab,
+.back-link,
+.switch { cursor: pointer; }
+
+.circle-card { transition: background 0.12s ease; }
+.circle-card:hover { background: rgba(74, 124, 89, 0.04); }
+.admin-circle-row { transition: background 0.12s ease; }
+.admin-circle-row:hover { background: rgba(74, 124, 89, 0.03); }
+
+/* ---- Mobile fine-tuning (<=430px) ---------------------- */
+@media (max-width: 480px) {
+    /* Prevent iOS auto-zoom: inputs must be >=16px */
+    .form-input,
+    .form-textarea,
+    .field input,
+    .field textarea,
+    .compose-card textarea,
+    .reply-section textarea,
+    .subtask-form input,
+    .subtask-form select,
+    select {
+        font-size: 16px;
+    }
+
+    /* Comfortable tap heights for inputs & selects */
+    .form-input,
+    .field input,
+    select {
+        min-height: 44px;
+    }
+
+    /* Let wide rows scroll instead of overflowing the column */
+    .admin-member-actions { flex-wrap: wrap; justify-content: flex-end; }
+}

@@ -16,6 +16,14 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ---- Culture ---------------------------------------------------------------
+// Render all dates, numbers and month names in Swedish (e.g. "8 september
+// 2026", "lör 18 jan") regardless of the host's locale. Set as the process
+// default so every request thread and background task formats consistently.
+var swedishCulture = System.Globalization.CultureInfo.GetCultureInfo("sv-SE");
+System.Globalization.CultureInfo.DefaultThreadCurrentCulture = swedishCulture;
+System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = swedishCulture;
+
 // ---- Blazor (interactive server components) --------------------------------
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

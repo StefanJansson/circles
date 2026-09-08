@@ -74,7 +74,10 @@ else
             <h2 class="section-label">Medlemmar (@Members.Count)</h2>
             @if (Members.Count == 0)
             {
-                <div class="empty-state"><p class="empty-title">Inga medlemmar ännu</p></div>
+                <div class="empty-state">
+                    <span class="empty-icon">👥</span>
+                    <p class="empty-title">Inga medlemmar i den här cirkeln ännu</p>
+                </div>
             }
             else
             {

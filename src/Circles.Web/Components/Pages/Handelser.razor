@@ -37,11 +37,25 @@
 
     @if (IsLoading)
     {
-        <p class="loading-text">Laddar händelser…</p>
+        <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Laddar händelser…</p>
+        </div>
+    }
+    else if (HasError)
+    {
+        <div class="error-state">
+            <span class="error-icon">⚠️</span>
+            <p>Kunde inte ladda händelser. Försök igen senare.</p>
+        </div>
     }
     else if (Events.Count == 0)
     {
-        <p class="empty-text">Inga händelser ännu.</p>
+        <div class="empty-state">
+            <span class="empty-icon">📅</span>
+            <p class="empty-title">Inga kommande händelser</p>
+            <p class="empty-help">Synka kalendern för att se händelser.</p>
+        </div>
     }
     else
     {
