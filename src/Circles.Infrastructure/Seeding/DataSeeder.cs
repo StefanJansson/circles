@@ -59,26 +59,67 @@ public static class DataSeeder
     }
 
     /// <summary>
-    /// Seeds the single site administrator account. Idempotent — skipped if an
-    /// account with the site admin e-mail already exists.
+    /// Ensures the single site administrator account exists AND is usable with
+    /// the documented bootstrap credentials.
+    ///
+    /// This is deliberately self-healing rather than a plain "skip if exists":
+    /// on a database that already contains an account with this e-mail (e.g. one
+    /// created during earlier testing, a magic-link sign-in, or an older seed),
+    /// a plain skip would leave that account with the wrong password or without
+    /// the site-admin flag — and the documented login would fail. So if the
+    /// account already exists we promote it to site admin and reset its password
+    /// to the known bootstrap value whenever that value doesn't already verify.
     /// </summary>
     private static async Task SeedSiteAdminAsync(CirclesDbContext db)
     {
         var email = SiteAdminEmail.Trim().ToLowerInvariant();
-        if (await db.UserAccounts.AnyAsync(u => u.Email == email))
-            return;
+        var account = await db.UserAccounts.FirstOrDefaultAsync(u => u.Email == email);
 
-        var account = new UserAccount
+        if (account is null)
         {
-            Id = Id("account:site-admin"),
-            Email = email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(SiteAdminPassword),
-            IsSiteAdmin = true,
-            PersonId = null,
-            CreatedAt = DateTime.UtcNow
-        };
-        db.UserAccounts.Add(account);
+            db.UserAccounts.Add(new UserAccount
+            {
+                Id = Id("account:site-admin"),
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(SiteAdminPassword),
+                IsSiteAdmin = true,
+                PersonId = null,
+                CreatedAt = DateTime.UtcNow
+            });
 
-        await db.SaveChangesAsync();
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        // Account already exists — make sure it is a working site admin.
+        var changed = false;
+
+        if (!account.IsSiteAdmin)
+        {
+            account.IsSiteAdmin = true;
+            changed = true;
+        }
+
+        // Reset the password only when the documented one doesn't already work,
+        // so we never clobber a hash that is already correct.
+        var passwordWorks =
+            !string.IsNullOrEmpty(account.PasswordHash) &&
+            SafeVerify(SiteAdminPassword, account.PasswordHash);
+
+        if (!passwordWorks)
+        {
+            account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(SiteAdminPassword);
+            changed = true;
+        }
+
+        if (changed)
+            await db.SaveChangesAsync();
+    }
+
+    /// <summary>BCrypt verify that never throws on a malformed stored hash.</summary>
+    private static bool SafeVerify(string password, string hash)
+    {
+        try { return BCrypt.Net.BCrypt.Verify(password, hash); }
+        catch { return false; }
     }
 }
