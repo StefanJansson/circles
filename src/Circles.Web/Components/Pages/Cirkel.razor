@@ -1,12 +1,8 @@
 @page "/cirklar/{Id:guid}"
-@using Circles.Application.Services
 @using Circles.Domain.Enums
-@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
 @rendermode InteractiveServer
-@inject CirclesQueryService Circles
-@inject ModuleService Modules
-@inject AuthenticationStateProvider AuthState
+@inherits CirkelBase
 
 <PageTitle>@(_circle?.Name ?? "Cirkel") · Circles</PageTitle>
 
@@ -89,45 +85,4 @@ else
             </ul>
         }
     </section>
-}
-
-@code {
-    [Parameter] public Guid Id { get; set; }
-
-    private CircleAccessDto? _circle;
-    private List<MemberDto>? _members;
-    private List<ModuleType> _enabledModules = new();
-    private bool _loading = true;
-    private string? _error;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var user = (await AuthState.GetAuthenticationStateAsync()).User;
-        var personId = user.GetPersonId();
-        if (personId is not { } pid)
-        {
-            _loading = false;
-            return;
-        }
-
-        try
-        {
-            var accessible = await Circles.GetAccessibleCirclesAsync(pid);
-            _circle = accessible.FirstOrDefault(c => c.CircleId == Id);
-
-            if (_circle is not null)
-            {
-                _members = await Circles.GetActiveMembersAsync(Id);
-                _enabledModules = await Modules.GetEnabledModulesForCircleAsync(Id);
-            }
-        }
-        catch
-        {
-            _error = "Kunde inte hämta cirkeln.";
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
 }

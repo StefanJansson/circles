@@ -1,9 +1,7 @@
 @page "/login"
 @using Microsoft.AspNetCore.Components.Authorization
 @attribute [AllowAnonymous]
-@inject AuthenticationStateProvider AuthState
-@inject NavigationManager Nav
-@inject ExternalAuthOptions ExternalAuth
+@inherits LoginBase
 
 @* Static server-rendered page (no interactive render mode) so the form posts
    run in a real HTTP request and can write the auth cookie. *@
@@ -119,19 +117,3 @@
         Ny här? <a href="/registrera">Skapa en förening</a>
     </p>
 </div>
-
-@code {
-    [SupplyParameterFromQuery] public string? Error { get; set; }
-    [SupplyParameterFromQuery] public string? Email { get; set; }
-    [SupplyParameterFromQuery] public string? Sent { get; set; }
-    [SupplyParameterFromQuery] public string? DevToken { get; set; }
-    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        // Already signed in? Skip the form.
-        var state = await AuthState.GetAuthenticationStateAsync();
-        if (state.User.Identity?.IsAuthenticated == true)
-            Nav.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/hem" : ReturnUrl, forceLoad: false);
-    }
-}

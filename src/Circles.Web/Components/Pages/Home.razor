@@ -1,8 +1,2 @@
 @page "/"
-@inject NavigationManager Nav
-
-@code {
-    // The app entry point simply forwards to /hem, which is protected and will
-    // bounce anonymous visitors to /login.
-    protected override void OnInitialized() => Nav.NavigateTo("/hem", forceLoad: false);
-}
+@inherits HomeBase

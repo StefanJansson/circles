@@ -1,7 +1,6 @@
 @page "/profil"
-@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
-@inject AuthenticationStateProvider AuthState
+@inherits ProfilBase
 
 <PageTitle>Profil · Circles</PageTitle>
 
@@ -36,17 +35,3 @@
         Logga ut
     </button>
 </form>
-
-@code {
-    private string? _fullName;
-    private string? _email;
-    private bool _linked;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var user = (await AuthState.GetAuthenticationStateAsync()).User;
-        _fullName = user.GetFullName();
-        _email = user.GetEmail();
-        _linked = user.GetPersonId() is not null;
-    }
-}

@@ -1,9 +1,7 @@
 @page "/hem"
-@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
 @rendermode InteractiveServer
-@inject CirclesQueryService Circles
-@inject AuthenticationStateProvider AuthState
+@inherits HemBase
 
 <PageTitle>Hem · Circles</PageTitle>
 
@@ -54,35 +52,3 @@
         </ul>
     }
 </section>
-
-@code {
-    private List<CircleAccessDto>? _circles;
-    private string? _error;
-    private bool _hasPerson;
-    private string Greeting = "Hej!";
-
-    protected override async Task OnInitializedAsync()
-    {
-        var user = (await AuthState.GetAuthenticationStateAsync()).User;
-        var first = user.GetFirstName();
-        Greeting = string.IsNullOrWhiteSpace(first) ? "Hej!" : $"Hej {first}!";
-
-        var personId = user.GetPersonId();
-        _hasPerson = personId is not null;
-
-        if (personId is not { } pid)
-        {
-            _circles = new();
-            return;
-        }
-
-        try
-        {
-            _circles = await Circles.GetAccessibleCirclesAsync(pid);
-        }
-        catch
-        {
-            _error = "Kunde inte hämta dina cirklar.";
-        }
-    }
-}
