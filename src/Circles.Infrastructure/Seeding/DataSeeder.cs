@@ -115,9 +115,6 @@ public static class DataSeeder
             Name = "P2011",
             Slug = "p2011",
             Type = CircleType.Team,
-            // laget.se subscription — during the transition the team keeps its
-            // schedule on laget.se and Circles simply syncs it in.
-            LagetSeCalendarUrl = "https://cal.laget.se/U15-.ics",
             CreatedAt = Now
         };
         var p2013 = new Circle
@@ -161,6 +158,20 @@ public static class DataSeeder
             CreatedAt = Now
         };
         db.Circles.AddRange(root, p2011, p2013, f2016, board, officials);
+
+        // ---- Calendar Subscriptions ----------------------------------------
+        // P2011 syncs its schedule from laget.se during the transition phase.
+        var p2011LagetSe = new CalendarSubscription
+        {
+            Id = Id("cal-sub:p2011-lagetse"),
+            CircleId = p2011.Id,
+            Name = "Laget.se P2011",
+            Url = "https://cal.laget.se/U15-.ics",
+            Description = "Matchkalender från laget.se under övergångsperioden",
+            IsActive = true,
+            CreatedAt = Now
+        };
+        db.CalendarSubscriptions.Add(p2011LagetSe);
 
         // ---- People (some with accounts, some without) --------------------
         // Johan Andersson — has a UserAccount, guardian of Alexander.

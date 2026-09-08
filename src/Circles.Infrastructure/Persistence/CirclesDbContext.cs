@@ -24,6 +24,7 @@ public class CirclesDbContext : DbContext
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<Event> Events => Set<Event>();
     public DbSet<OrganizationModule> OrganizationModules => Set<OrganizationModule>();
+    public DbSet<CalendarSubscription> CalendarSubscriptions => Set<CalendarSubscription>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -9,14 +9,13 @@ using Microsoft.Extensions.Logging;
 namespace Circles.Infrastructure.Sync;
 
 /// <summary>
-/// Imports a circle's events from a laget.se ICS calendar feed. laget.se is one
-/// of the tools this platform replaces, so during the transition a team can keep
-/// maintaining its schedule there and simply subscribe to it here.
+/// Imports a circle's events from external iCal/ICS calendar feeds.
+/// Generic sync service that works with any standard iCal source (laget.se,
+/// Google Calendar, etc.). During the transition from legacy tools, a team can
+/// maintain its schedule externally and subscribe to it here.
 /// </summary>
 public class LagetSeCalendarSyncService : ICalendarSyncService
 {
-    private const string ExternalSourceName = "laget.se";
-
     private readonly CirclesDbContext _db;
     private readonly HttpClient _http;
     private readonly ILogger<LagetSeCalendarSyncService> _logger;
@@ -34,22 +33,61 @@ public class LagetSeCalendarSyncService : ICalendarSyncService
     public async Task<int> SyncCircleAsync(Guid circleId, CancellationToken ct = default)
     {
         var circle = await _db.Circles
+            .Include(c => c.CalendarSubscriptions)
             .FirstOrDefaultAsync(c => c.Id == circleId, ct);
 
         if (circle is null)
             throw new InvalidOperationException($"Cirkeln {circleId} hittades inte.");
 
-        if (string.IsNullOrWhiteSpace(circle.LagetSeCalendarUrl))
+        var activeSubscriptions = circle.CalendarSubscriptions
+            .Where(sub => sub.IsActive)
+            .ToList();
+
+        if (!activeSubscriptions.Any())
         {
             _logger.LogInformation(
-                "Circle {CircleId} has no calendar URL configured; skipping sync.", circleId);
+                "Circle {CircleId} has no active calendar subscriptions; skipping sync.", circleId);
             return 0;
         }
 
-        var icsText = await FetchIcsAsync(circle.LagetSeCalendarUrl!, ct);
+        var totalImported = 0;
+
+        foreach (var subscription in activeSubscriptions)
+        {
+            try
+            {
+                var imported = await SyncSubscriptionAsync(circleId, subscription, ct);
+                totalImported += imported;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to sync subscription {SubscriptionId} for circle {CircleId}",
+                    subscription.Id, circleId);
+                // Continue with other subscriptions even if one fails
+            }
+        }
+
+        _logger.LogInformation(
+            "Synced {Count} events total for circle {CircleId} from {SubscriptionCount} subscriptions.",
+            totalImported, circleId, activeSubscriptions.Count);
+
+        return totalImported;
+    }
+
+    private async Task<int> SyncSubscriptionAsync(
+        Guid circleId,
+        CalendarSubscription subscription,
+        CancellationToken ct)
+    {
+        var icsText = await FetchIcsAsync(subscription.Url, ct);
         var calendar = Calendar.Load(icsText);
         if (calendar?.Events is null)
+        {
+            subscription.LastSyncedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
             return 0;
+        }
 
         // Existing events for this circle that came from an external feed,
         // keyed by their feed UID for O(1) upsert lookups.
@@ -89,7 +127,7 @@ public class LagetSeCalendarSyncService : ICalendarSyncService
                 existingEvent.StartsAt = startsAt;
                 existingEvent.EndsAt = endsAt;
                 existingEvent.Location = location;
-                existingEvent.ExternalSource = ExternalSourceName;
+                existingEvent.ExternalSource = subscription.Name;
                 existingEvent.UpdatedAt = now;
             }
             else
@@ -105,7 +143,7 @@ public class LagetSeCalendarSyncService : ICalendarSyncService
                     EndsAt = endsAt,
                     Location = location,
                     ExternalId = uid,
-                    ExternalSource = ExternalSourceName,
+                    ExternalSource = subscription.Name,
                     CreatedAt = now
                 });
             }
@@ -113,10 +151,12 @@ public class LagetSeCalendarSyncService : ICalendarSyncService
             imported++;
         }
 
+        subscription.LastSyncedAt = now;
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(
-            "Synced {Count} events for circle {CircleId} from laget.se.", imported, circleId);
+            "Synced {Count} events for circle {CircleId} from subscription {SubscriptionName}.",
+            imported, circleId, subscription.Name);
 
         return imported;
     }
