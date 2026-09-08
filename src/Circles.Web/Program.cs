@@ -134,8 +134,12 @@ static string ResolveCirclesConnectionString(IConfiguration config)
     return "Server=localhost,1433;Database=circles;User Id=sa;Password=Circles_Str0ng!Pass;TrustServerCertificate=True;Encrypt=True";
 }
 
-builder.Services.AddDbContext<CirclesDbContext>(options =>
+// Use DbContextFactory for Blazor Server to avoid concurrency issues
+builder.Services.AddDbContextFactory<CirclesDbContext>(options =>
     options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure()));
+
+// Also register scoped DbContext for services that expect it
+builder.Services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<CirclesDbContext>>().CreateDbContext());
 
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddScoped<CirclesQueryService>();
