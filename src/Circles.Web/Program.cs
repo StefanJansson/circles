@@ -36,7 +36,7 @@ builder.Services.AddRazorComponents()
 // External providers (Google / Facebook) can be added later by chaining
 // .AddGoogle(...) / .AddFacebook(...) here; the existing cookie remains the
 // primary application session, so the rest of the app is unaffected.
-builder.Services
+var authBuilder = builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -49,6 +49,63 @@ builder.Services
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
     });
+
+// ---- External OAuth providers (optional) -----------------------------------
+// Google + Microsoft sign-in are enabled ONLY when a ClientId is configured
+// (appsettings / environment). Each provider uses a dedicated cookie
+// ("circles.ext") purely to carry the external identity through the callback;
+// the real application session is always the "circles.auth" cookie built after
+// we match the external email to an EXISTING UserAccount. We never auto-create
+// accounts (controlled club membership).
+const string ExternalScheme = "circles.ext";
+
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+var googleEnabled = !string.IsNullOrWhiteSpace(googleClientId);
+
+var msClientId = builder.Configuration["Authentication:Microsoft:ClientId"];
+var msClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"];
+var msEnabled = !string.IsNullOrWhiteSpace(msClientId);
+
+if (googleEnabled || msEnabled)
+{
+    // Intermediate cookie that temporarily holds the external identity between
+    // the provider redirect and our /auth/external-callback handler.
+    authBuilder.AddCookie(ExternalScheme, o =>
+    {
+        o.Cookie.Name = "circles.ext";
+        o.Cookie.HttpOnly = true;
+        o.Cookie.SameSite = SameSiteMode.Lax;
+        o.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+    });
+}
+
+if (googleEnabled)
+{
+    authBuilder.AddGoogle(o =>
+    {
+        o.ClientId = googleClientId!;
+        o.ClientSecret = googleClientSecret ?? "";
+        o.CallbackPath = "/signin-google";
+        o.SignInScheme = ExternalScheme;
+        o.SaveTokens = false;
+    });
+}
+
+if (msEnabled)
+{
+    authBuilder.AddMicrosoftAccount(o =>
+    {
+        o.ClientId = msClientId!;
+        o.ClientSecret = msClientSecret ?? "";
+        o.CallbackPath = "/signin-microsoft";
+        o.SignInScheme = ExternalScheme;
+        o.SaveTokens = false;
+    });
+}
+
+// Surface which providers are enabled to the UI (Login page) via config lookup.
+builder.Services.AddSingleton(new ExternalAuthOptions(googleEnabled, msEnabled));
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
@@ -185,7 +242,64 @@ app.MapPost("/auth/logout", async (HttpContext http) =>
     return Results.LocalRedirect("/login");
 });
 
+// ---- External OAuth (Google / Microsoft) -----------------------------------
+// Step 1: challenge the chosen provider. The provider redirects back to its
+// CallbackPath (/signin-google or /signin-microsoft) which signs into the
+// intermediate "circles.ext" cookie, then forwards to /auth/external-callback.
+app.MapGet("/auth/external-login", (HttpContext http, string provider) =>
+{
+    var scheme = provider switch
+    {
+        "Google" => "Google",
+        "Microsoft" => "Microsoft",
+        _ => null
+    };
+    if (scheme is null)
+        return Results.Redirect("/login?error=external");
+
+    var props = new AuthenticationProperties
+    {
+        RedirectUri = $"/auth/external-callback?provider={scheme}"
+    };
+    return Results.Challenge(props, new[] { scheme });
+});
+
+// Step 2: read the external identity from "circles.ext", match its email to an
+// EXISTING account, and (only then) issue the real "circles.auth" session.
+app.MapGet("/auth/external-callback", async (HttpContext http, string? provider, AuthService auth) =>
+{
+    var result = await http.AuthenticateAsync(ExternalScheme);
+    // Always clear the temporary external cookie once we've read it.
+    await http.SignOutAsync(ExternalScheme);
+
+    if (!result.Succeeded || result.Principal is null)
+        return Results.Redirect("/login?error=external");
+
+    var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value
+                ?? result.Principal.FindFirst("email")?.Value;
+
+    if (string.IsNullOrWhiteSpace(email))
+        return Results.Redirect("/login?error=external");
+
+    var account = await auth.GetAccountByEmailAsync(email);
+    if (account is null)
+        return Results.Redirect($"/login?error=external_not_found&email={Uri.EscapeDataString(email)}");
+
+    await http.SignInAsync(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        CookieClaims.Build(account),
+        new AuthenticationProperties { IsPersistent = true });
+
+    return Results.LocalRedirect("/hem");
+}).DisableAntiforgery(); // GET redirect back from provider; no form token.
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+/// <summary>
+/// Flags which external OAuth providers are configured, so the Login page can
+/// conditionally render the corresponding buttons.
+/// </summary>
+public record ExternalAuthOptions(bool GoogleEnabled, bool MicrosoftEnabled);

@@ -128,3 +128,60 @@ att ändra schema (skapa tabeller) första gången.
 7. Push till `main` → GitHub Actions bygger och deployar.
 8. Verifiera: `https://<app>.azurewebsites.net/health` (API) svarar, och webben visar
    inloggningssidan istället för Azure default-sidan.
+
+
+
+---
+
+## 6. Extern inloggning: Google + Microsoft (valfritt)
+
+Circles.Web kan låta medlemmar logga in med Google eller Microsoft **utöver**
+e-post/lösenord. Inloggningen matchar bara mot **befintliga** konton — vi skapar
+aldrig nya `UserAccount` automatiskt. Om den externa e-postadressen inte finns
+som ett Circles-konto visas felmeddelandet
+"Inget Circles-konto hittades … Kontakta din administratör."
+
+Knapparna visas bara för de leverantörer som är konfigurerade (tomt `ClientId`
+= dold knapp).
+
+### 6.1 Google OAuth
+
+1. Gå till https://console.cloud.google.com/ → skapa/välj ett projekt.
+2. **APIs & Services → OAuth consent screen**: välj "External", fyll i appnamn
+   (Circles), support-e-post och spara.
+3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**:
+   - Application type: **Web application**
+   - **Authorized redirect URIs** — lägg till exakt:
+     - `https://<app>.azurewebsites.net/signin-google` (produktion/dev i Azure)
+     - `https://localhost:7099/signin-google` (lokal utveckling)
+4. Kopiera **Client ID** och **Client secret**.
+
+### 6.2 Microsoft (Azure AD / Microsoft-konto)
+
+1. Gå till https://portal.azure.com → **Microsoft Entra ID → App registrations →
+   New registration**.
+2. Namn: Circles. Supported account types: välj det som passar (t.ex.
+   "Accounts in any organizational directory and personal Microsoft accounts").
+3. **Redirect URI** (plattform: Web) — lägg till exakt:
+   - `https://<app>.azurewebsites.net/signin-microsoft`
+   - `https://localhost:7099/signin-microsoft`
+4. Efter registrering: kopiera **Application (client) ID**.
+5. **Certificates & secrets → New client secret** → kopiera secret-**värdet**.
+
+### 6.3 App-inställningar (Azure App Service → Configuration)
+
+Sätt följande (dubbelt understreck `__` = hierarki i .NET-konfiguration):
+
+| App Setting | Värde |
+|-------------|-------|
+| `Authentication__Google__ClientId` | Google Client ID |
+| `Authentication__Google__ClientSecret` | Google Client secret |
+| `Authentication__Microsoft__ClientId` | Microsoft Application (client) ID |
+| `Authentication__Microsoft__ClientSecret` | Microsoft client secret-värde |
+
+Lokalt kan samma värden läggas i `appsettings.Development.json` eller via
+`dotnet user-secrets`. Lämna tomt för att stänga av respektive knapp.
+
+> **Viktigt:** redirect-URI:erna ovan (`/signin-google`, `/signin-microsoft`)
+> måste matcha exakt, inklusive https och domän, annars nekar leverantören
+> återanropet.

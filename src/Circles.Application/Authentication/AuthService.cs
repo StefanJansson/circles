@@ -136,6 +136,21 @@ public class AuthService
             .Include(u => u.Person)
             .FirstOrDefaultAsync(u => u.Id == userAccountId, ct);
 
+    /// <summary>
+    /// Looks up an account by email (case-insensitive), including the linked
+    /// person. Used by external OAuth sign-in to match an existing account —
+    /// we never auto-create accounts for a controlled club membership.
+    /// </summary>
+    public async Task<UserAccount?> GetAccountByEmailAsync(string email, CancellationToken ct = default)
+    {
+        email = (email ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(email))
+            return null;
+        return await _db.UserAccounts
+            .Include(u => u.Person)
+            .FirstOrDefaultAsync(u => u.Email == email, ct);
+    }
+
     private static string GenerateToken() =>
         Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
 }

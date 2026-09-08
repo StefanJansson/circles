@@ -1007,3 +1007,26 @@ a { color: inherit; text-decoration: none; }
     /* Let wide rows scroll instead of overflowing the column */
     .admin-member-actions { flex-wrap: wrap; justify-content: flex-end; }
 }
+
+
+
+/* ---- External / social login (Task 8e) ---------------------------------- */
+.social-login { margin: 1.25rem 0 0.25rem; display: flex; flex-direction: column; }
+.btn-social {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--hairline, #E8E6E1);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--navy, #1C2B3A);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-social:hover { background: var(--cream, #FAFAF8); border-color: #d9d6cf; }
+.btn-social svg { flex: 0 0 auto; }
